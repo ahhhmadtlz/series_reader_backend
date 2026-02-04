@@ -16,7 +16,7 @@ git clone https://github.com/yourusername/manga-backend.git
 cd manga-backend
 
 # Copy environment file
-cp .env.example .env
+cp .env.*  .env
 
 # Install dependencies
 go mod download
