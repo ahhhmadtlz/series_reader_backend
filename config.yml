@@ -1,0 +1,22 @@
+http_server:
+  port: 8080
+
+
+database:
+  username: root
+  port: 3306
+  host: localhost
+  name: seriesreader 
+  sslmode: disablea # ok for localhost for production you need to use  => require
+
+
+
+logger:
+  file_path: "logs/app.log"
+  use_local_time: false        
+  file_max_size_mb: 100        # megabytes
+  file_max_age_days: 30        # days to keep
+  max_backups: 5              
+  compress: true               # compress rotated logs
+
+
