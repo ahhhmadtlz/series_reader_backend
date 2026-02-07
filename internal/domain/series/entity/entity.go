@@ -24,7 +24,8 @@ type Series struct {
 	Description       string    `json:"description"`
 	Author            string    `json:"author"`
 	Artist            string    `json:"artist"`
-	Status            string    `json:"type"`
+	Status            string    `json:"status"`
+	Type              string    `json:"type"`
 	Genres            []string  `json:"genres"`
 	AlternativeTitles []string  `json:"alternative_titles"`
 	CoverImageURL     string    `json:"cover_image_url"`
