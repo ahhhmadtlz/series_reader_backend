@@ -1,7 +1,5 @@
 package config
 
-import "github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
-
 func Default() Config {
 	cfx := Config{
 		// Auth: auth.Config {
@@ -10,13 +8,6 @@ func Default() Config {
 		// 	AccessSubject: AccessTokenSubject,
 		// 	RefreshSubject: RefreshTokenSubject,
 		// },
-		Logger: logger.Config{
-			UseLocalTime:     LoggerUseLocalTime,
-			FileMaxSizeInMB:  LoggerFileMaxSizeInMB,
-			FileMaxAgeInDays: LoggerFileMaxAgeInDays,
-			MaxBackups:       LoggerMaxBackups,
-			Compress:         LoggerCompress,
-		},
 		// Redis: Redis{
 		// 	Host:     "localhost",
 		// 	Port:     6379,
@@ -32,6 +23,14 @@ func Default() Config {
 		// 		"low":      1,
 		// 	},
 		// },
+		Postgres: Postgres{
+    Host:     "localhost",
+    Port:     5432,
+    Username: "postgres",
+    Password: "postgres",
+    DBName:   "series_reader",
+    SSLMode:  "disable",
+},
 	}
 	return cfx
 }

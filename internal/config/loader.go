@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"strings"
 
 	"github.com/knadh/koanf"
@@ -12,13 +11,11 @@ import (
 )
 
 const (
-	defaultPrefix       = "ET_"
+	defaultPrefix       = "SERIES_"
 	defaultDelimiter    = "."
 	defaultSeparator    = "__"
 	defaultYamlFilePath = "config.yml"
 )
-
-var c Config
 
 type Option struct {
 	Prefix       string
@@ -28,60 +25,46 @@ type Option struct {
 	CallbackEnv  func(string) string
 }
 
-// our environment variables must prefix with `ET_` (Expense Tracker)
-// for nested .env should use `__` aka: ET__DB__HOST.
 func defaultCallbackEnv(source string) string {
 	base := strings.ToLower(strings.TrimPrefix(source, defaultPrefix))
 	return strings.ReplaceAll(base, defaultSeparator, defaultDelimiter)
 }
 
-func init() {
-	k := koanf.New(defaultDelimiter)
-
-	// load default configuration from Default function
-	if err := k.Load(structs.Provider(Default(), "koanf"), nil); err != nil {
-		log.Fatalf("error loading default config: %s", err)
-	}
-
-	// load configuration from yaml file
-	if err := k.Load(file.Provider(defaultYamlFilePath), yaml.Parser()); err != nil {
-		log.Printf("error loading config from `config.yml` file: %s", err)
-	}
-
-	// load from environment variable
-	if err := k.Load(env.Provider(defaultPrefix, defaultDelimiter, defaultCallbackEnv), nil); err != nil {
-		log.Printf("error loading environment variables: %s", err)
-	}
-
-	if err := k.Unmarshal("", &c); err != nil {
-		log.Fatalf("error unmarshaling config: %s", err)
+func DefaultOption() Option {
+	return Option{
+		Prefix:       defaultPrefix,
+		Delimiter:    defaultDelimiter,
+		Separator:    defaultSeparator,
+		YamlFilePath: defaultYamlFilePath,
+		CallbackEnv:  defaultCallbackEnv,
 	}
 }
 
-// C returns the loaded configuration
-func C() Config {
-	return c
-}
-
-// New creates a new configuration with custom options
-func New(opt Option) Config {
+func Load(opt Option) (*Config, error) {
 	k := koanf.New(opt.Delimiter)
 
+	// 1. defaults (from struct)
 	if err := k.Load(structs.Provider(Default(), "koanf"), nil); err != nil {
-		log.Fatalf("error loading default config: %s", err)
+		return nil, err
 	}
 
+	// 2. yaml file (optional, but recommended)
 	if err := k.Load(file.Provider(opt.YamlFilePath), yaml.Parser()); err != nil {
-		log.Printf("error loading config from `%s` file: %s", opt.YamlFilePath, err)
+		return nil, err
 	}
 
-	if err := k.Load(env.Provider(opt.Prefix, opt.Delimiter, opt.CallbackEnv), nil); err != nil {
-		log.Printf("error loading environment variables: %s", err)
+	// 3. environment variables
+	if err := k.Load(
+		env.Provider(opt.Prefix, opt.Delimiter, opt.CallbackEnv),
+		nil,
+	); err != nil {
+		return nil, err
 	}
 
-	if err := k.Unmarshal("", &c); err != nil {
-		log.Fatalf("error unmarshaling config: %s", err)
+	var cfg Config
+	if err := k.Unmarshal("", &cfg); err != nil {
+		return nil, err
 	}
 
-	return c
+	return &cfg, nil
 }
