@@ -1,14 +1,7 @@
 package validator
 
-type Repository interface {
-}
+type Validator struct{}
 
-type Validator struct {
-	repo Repository
-}
-
-func New(repo Repository) Validator {
-	return Validator{
-		repo: repo,
-	}
+func New() Validator {
+	return Validator{}
 }

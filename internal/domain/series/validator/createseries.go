@@ -10,7 +10,10 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-func (v Validator) ValidateCreateSeriesRequest(ctx context.Context, req param.CreateSeriesRequest) (map[string]string, error) {
+func (v Validator) ValidateCreateSeriesRequest(
+	ctx context.Context,
+	req param.CreateSeriesRequest,
+) error {
 	const op = richerror.Op("seriesvalidator.ValidateCreateSeriesRequest")
 
 	// Trim spaces
@@ -67,17 +70,20 @@ func (v Validator) ValidateCreateSeriesRequest(ctx context.Context, req param.Cr
 
 	if err != nil {
 		if errV, ok := err.(validation.Errors); ok {
-			for key, value := range errV {
+			for field, value := range errV {
 				if value != nil {
-					fieldErrors[key] = value.Error()
+					fieldErrors[field] = value.Error()
 				}
 			}
 		}
 	}
 
 	if len(fieldErrors) > 0 {
-		return fieldErrors, richerror.New(op).WithMessage("invalid input").WithKind(richerror.KindInvalid).WithMeta("fields", fieldErrors)
+		return richerror.New(op).
+			WithMessage("invalid input").
+			WithKind(richerror.KindInvalid).
+			WithMeta("fields", fieldErrors)
 	}
 
-	return nil, nil
+	return nil
 }

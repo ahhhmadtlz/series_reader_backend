@@ -9,8 +9,10 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-
-func (v Validator) ValidateGetListRequest(ctx context.Context, req param.GetListRequest) (map[string]string, error) {
+func (v Validator) ValidateGetListRequest(
+	ctx context.Context,
+	req param.GetListRequest,
+) error {
 	const op = richerror.Op("seriesvalidator.ValidateGetListRequest")
 
 	fieldErrors := make(map[string]string)
@@ -45,7 +47,8 @@ func (v Validator) ValidateGetListRequest(ctx context.Context, req param.GetList
 			).Error("sort_by must be one of: rating, view_count, created_at, title"),
 		),
 		validation.Field(&req.Sort.SortOrder,
-			validation.In("", "asc", "desc").Error("sort_order must be asc or desc"),
+			validation.In("", "asc", "desc").
+				Error("sort_order must be asc or desc"),
 		),
 		validation.Field(&req.Pagination.Page,
 			validation.Min(0).Error("page must be a positive number"),
@@ -58,17 +61,20 @@ func (v Validator) ValidateGetListRequest(ctx context.Context, req param.GetList
 
 	if err != nil {
 		if errV, ok := err.(validation.Errors); ok {
-			for key, value := range errV {
+			for field, value := range errV {
 				if value != nil {
-					fieldErrors[key] = value.Error()
+					fieldErrors[field] = value.Error()
 				}
 			}
 		}
 	}
 
 	if len(fieldErrors) > 0 {
-		return fieldErrors, richerror.New(op).WithMessage("invalid input").WithKind(richerror.KindInvalid).WithMeta("fields", fieldErrors)
+		return richerror.New(op).
+			WithMessage("invalid input").
+			WithKind(richerror.KindInvalid).
+			WithMeta("fields", fieldErrors)
 	}
 
-	return nil, nil
+	return nil
 }

@@ -14,7 +14,7 @@ type DB struct {
 	config config.Postgres
 	db     *sql.DB
 }
-
+  
 func (d *DB) Conn() *sql.DB {
 	return d.db
 }
