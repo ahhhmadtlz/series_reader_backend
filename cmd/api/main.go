@@ -8,10 +8,14 @@ import (
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/config"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/serieshandler"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/service"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/validator"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/repository/migrator"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres"
+	seriesrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/series"
 )
 
 func main() {
@@ -51,19 +55,51 @@ func main() {
 	}
 	logger.Info("Migrations completed successfully")
 
+
+	// Initialize repositories
+	seriesRepository := seriesrepo.New(postgresDB.Conn())
+	logger.Info("Series repository initialized")
+
+	// Initialize validators
+	seriesValidator := validator.New()
+	logger.Info("Series validator initialized")
+
+	// Initialize services
+	seriesService := service.New(seriesRepository)
+	logger.Info("Series service initialized")
+
+	// Initialize handlers
+	seriesHandler := serieshandler.New(seriesService, seriesValidator)
+	logger.Info("Series handler initialized")
+
+	// Initialize HTTP server
 	server := httpserver.New(*cfg)
 
+	// Setup routes
+	seriesHandler.SetRoutes(server.Router)
+	logger.Info("Series routes registered",
+			"routes", []string{
+				"POST /series",
+				"GET /series/:id",
+				"GET /series/slug/:slug",
+				"GET /series",
+				"PUT /series/:id",
+				"DELETE /series/:id",
+			},
+		)
+
 	
-	logger.Info("Server configured successfully",
-		"routes", "health-check only",
-	)
+	
 
 	// 6. Start server in a goroutine
 	go func() {
 		server.Serve()
 	}()
 
-	logger.Info("Test the health check at: http://localhost:8080/health-check")
+	logger.Info("Server is ready",
+		"health_check", "http://localhost:8080/health-check",
+		"series_api", "http://localhost:8080/series",
+	)
 
 	// 7. Wait for interrupt signal for graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -81,3 +117,34 @@ func main() {
 
 	logger.Info("Application stopped")
 }
+
+
+// func setupServices(
+// 	cfg config.Config,
+// 	mysqlDB *mysql.MySQLDB,
+// ) (
+// 	auth.Service,
+// 	userservice.Service,
+// 	uservalidator.Validator,
+// 	categoryservice.Service,
+// 	categoryvalidator.Validator,
+// 	transactionservice.Service,
+// 	transactionvalidator.Validator,
+// ) {
+// 	// Auth service
+// 	authSvc := auth.New(cfg.Auth)
+
+// 	userRepo := userrepository.New(mysqlDB)
+// 	userValidator := uservalidator.New(userRepo)
+// 	userSvc := userservice.New(authSvc, userRepo)
+
+// 	categoryRepo := categoryrepository.New(mysqlDB)
+// 	categoryValidator := categoryvalidator.New(categoryRepo)
+// 	categorySvc := categoryservice.New(categoryRepo)
+
+// 	transactionRepo := transactionrepository.New(mysqlDB)
+// 	transactionValidator := transactionvalidator.New(transactionRepo, categoryRepo)
+// 	transactionSvc := transactionservice.New(transactionRepo)
+
+// 	return authSvc, userSvc, userValidator, categorySvc, categoryValidator, transactionSvc, transactionValidator
+// }
