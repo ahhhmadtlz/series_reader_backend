@@ -21,6 +21,7 @@ func (h Handler) get(c echo.Context) error {
         if err != nil {
             return httpmsgerrorhandler.Error(c, err)
         }
+        _ = h.service.IncrementViewCount(c.Request().Context(), uint(id))
         return c.JSON(http.StatusOK, response)
     }
 
@@ -37,5 +38,6 @@ func (h Handler) get(c echo.Context) error {
         return httpmsgerrorhandler.Error(c, err)
     }
 
+   _ = h.service.IncrementViewCount(c.Request().Context(), response.ID)
     return c.JSON(http.StatusOK, response)
 }
