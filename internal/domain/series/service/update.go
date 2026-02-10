@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/param"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/pkg/richerror"
@@ -18,24 +19,26 @@ func (s Service) Update(ctx context.Context, id uint, req param.UpdateSeriesRequ
 	}
 
 	// Update only provided fields
-	if req.Title != nil {
-		existingSeries.Title = *req.Title
-		// Regenerate slug if title changed
-		newSlug := slugify.Make(*req.Title)
-		if newSlug != existingSeries.Slug {
-			exists, err := s.repo.IsSlugExists(ctx, newSlug)
-			if err != nil {
-				return param.SeriesResponse{}, richerror.New(op).WithErr(err).WithMessage("failed to check slug existence").WithKind(richerror.KindUnexpected)
-			}
-			if exists {
-				newSlug = slugify.MakeUnique(*req.Title, func(testSlug string) bool {
-					exists, _ := s.repo.IsSlugExists(ctx, testSlug)
-					return exists
-				})
-			}
-			existingSeries.Slug = newSlug
-		}
-	}
+    if req.Title != nil {
+        existingSeries.Title = *req.Title
+        // Regenerate slug if title changed
+        newSlug := slugify.Make(*req.Title)
+        if newSlug != existingSeries.Slug {
+            exists, err := s.repo.IsSlugExists(ctx, newSlug)
+            if err != nil {
+                return param.SeriesResponse{}, richerror.New(op).WithErr(err).WithMessage("failed to check slug existence").WithKind(richerror.KindUnexpected)
+            }
+            if exists {
+                newSlug = slugify.MakeUnique(*req.Title, func(testSlug string) bool {
+                    exists, _ := s.repo.IsSlugExists(ctx, testSlug)
+                    return exists
+                })
+            }
+            existingSeries.Slug = newSlug
+            // FIX: Also update the FullSlug when the Slug changes
+            existingSeries.FullSlug = fmt.Sprintf("%s-%s", existingSeries.Slug, existingSeries.SlugID)
+        }
+    }
 
 	if req.Description != nil {
 		existingSeries.Description = *req.Description
