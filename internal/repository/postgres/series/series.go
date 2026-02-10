@@ -415,3 +415,68 @@ func (r *PostgresRepository) IsSlugExists(ctx context.Context, slug string) (boo
 
 	return exists, nil
 }
+
+func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (entity.Series, error) {
+	const op = richerror.Op("repository.postgres.series.GetBySlug")
+
+	query := `
+		SELECT id, title, slug, description, author, artist, status, type,
+		       genres, alternative_titles, cover_image_url, publication_year, 
+		       view_count, rating, is_published, created_at, updated_at
+		FROM series
+		WHERE slug = $1
+	`
+
+	var series entity.Series
+	var genresJSON, altTitlesJSON []byte
+
+	err := r.db.QueryRowContext(ctx, query, slug).Scan(
+		&series.ID,
+		&series.Title,
+		&series.Slug,
+		&series.Description,
+		&series.Author,
+		&series.Artist,
+		&series.Status,
+		&series.Type,
+		&genresJSON,
+		&altTitlesJSON,
+		&series.CoverImageURL,
+		&series.PublicationYear,
+		&series.ViewCount,
+		&series.Rating,
+		&series.IsPublished,
+		&series.CreatedAt,
+		&series.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return entity.Series{}, richerror.New(op).
+			WithErr(err).
+			WithMessage("series not found").
+			WithKind(richerror.KindNotFound)
+	}
+
+	if err != nil {
+		return entity.Series{}, richerror.New(op).
+			WithErr(err).
+			WithMessage("failed to get series by slug").
+			WithKind(richerror.KindUnexpected)
+	}
+
+	if err := json.Unmarshal(genresJSON, &series.Genres); err != nil {
+		return entity.Series{}, richerror.New(op).
+			WithErr(err).
+			WithMessage("failed to unmarshal genres").
+			WithKind(richerror.KindUnexpected)
+	}
+
+	if err := json.Unmarshal(altTitlesJSON, &series.AlternativeTitles); err != nil {
+		return entity.Series{}, richerror.New(op).
+			WithErr(err).
+			WithMessage("failed to unmarshal alternative titles").
+			WithKind(richerror.KindUnexpected)
+	}
+
+	return series, nil
+}
