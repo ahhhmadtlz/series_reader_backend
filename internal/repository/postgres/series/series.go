@@ -33,14 +33,14 @@ func (r *PostgresRepository) Create(ctx context.Context,series entity.Series)(en
 	 return entity.Series{},richerror.New(op).WithErr(err).WithMessage("failed to marshal alternative titles")
  }
 
- query:=`
- INSERT INTO series (
- title,slug,description,author,artist,status,type,
- genres,altenative_titles,cover_image_url,publication_year,
- view_count,rating,is_published
- )VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
- RETURNING id,created_at,updated_at
- `
+	query := `
+			INSERT INTO series (
+				title, slug, slug_id, full_slug, description, author, artist, status, type,
+				genres, alternative_titles, cover_image_url, publication_year,
+				view_count, rating, is_published
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+			RETURNING id, created_at, updated_at
+		`
  var createdSeries entity.Series
 
 err = r.db.QueryRowContext(
@@ -48,6 +48,8 @@ err = r.db.QueryRowContext(
 		query,
 		series.Title,
 		series.Slug,
+		series.SlugID,
+		series.FullSlug,
 		series.Description,
 		series.Author,
 		series.Artist,
@@ -68,6 +70,8 @@ err = r.db.QueryRowContext(
 
 	createdSeries.Title=series.Title
 	createdSeries.Slug=series.Slug
+	createdSeries.SlugID=series.SlugID
+	createdSeries.FullSlug=series.FullSlug
   createdSeries.Description=series.Description
 	createdSeries.Author=series.Author
 	createdSeries.Artist = series.Artist
@@ -91,7 +95,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context,id uint)(entity.Series,
 
 	query:=`
 	SELECT id,title,slug,description,author,artist,status,type,
-	generes,alternative_title,cover_image_url,publication_year,view_count,rating,is_published,created_at,updated_at
+	genres,alternative_titles,cover_image_url,publication_year,view_count,rating,is_published,created_at,updated_at
 	FROM series
 	WHERE id=$1
 	`
@@ -416,67 +420,40 @@ func (r *PostgresRepository) IsSlugExists(ctx context.Context, slug string) (boo
 	return exists, nil
 }
 
-func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (entity.Series, error) {
+func (r *PostgresRepository) GetBySlug(ctx context.Context, fullSlug string) (entity.Series, error) {
 	const op = richerror.Op("repository.postgres.series.GetBySlug")
 
 	query := `
-		SELECT id, title, slug, description, author, artist, status, type,
-		       genres, alternative_titles, cover_image_url, publication_year, 
-		       view_count, rating, is_published, created_at, updated_at
-		FROM series
-		WHERE slug = $1
+	SELECT id, title, slug, slug_id, full_slug, description, author, artist, status, type,
+	       genres, alternative_titles, cover_image_url, publication_year,
+	       view_count, rating, is_published, created_at, updated_at
+	FROM series
+	WHERE full_slug = $1
+	LIMIT 1
 	`
 
-	var series entity.Series
+	var s entity.Series
 	var genresJSON, altTitlesJSON []byte
 
-	err := r.db.QueryRowContext(ctx, query, slug).Scan(
-		&series.ID,
-		&series.Title,
-		&series.Slug,
-		&series.Description,
-		&series.Author,
-		&series.Artist,
-		&series.Status,
-		&series.Type,
-		&genresJSON,
-		&altTitlesJSON,
-		&series.CoverImageURL,
-		&series.PublicationYear,
-		&series.ViewCount,
-		&series.Rating,
-		&series.IsPublished,
-		&series.CreatedAt,
-		&series.UpdatedAt,
+	err := r.db.QueryRowContext(ctx, query, fullSlug).Scan(
+		&s.ID, &s.Title, &s.Slug, &s.SlugID, &s.FullSlug,
+		&s.Description, &s.Author, &s.Artist, &s.Status, &s.Type,
+		&genresJSON, &altTitlesJSON, &s.CoverImageURL, &s.PublicationYear,
+		&s.ViewCount, &s.Rating, &s.IsPublished, &s.CreatedAt, &s.UpdatedAt,
 	)
-
 	if err == sql.ErrNoRows {
-		return entity.Series{}, richerror.New(op).
-			WithErr(err).
-			WithMessage("series not found").
-			WithKind(richerror.KindNotFound)
+		return entity.Series{}, richerror.New(op).WithErr(err).WithMessage("series not found").WithKind(richerror.KindNotFound)
 	}
-
 	if err != nil {
-		return entity.Series{}, richerror.New(op).
-			WithErr(err).
-			WithMessage("failed to get series by slug").
-			WithKind(richerror.KindUnexpected)
+		return entity.Series{}, richerror.New(op).WithErr(err).WithMessage("failed to get series by slug").WithKind(richerror.KindUnexpected)
 	}
 
-	if err := json.Unmarshal(genresJSON, &series.Genres); err != nil {
-		return entity.Series{}, richerror.New(op).
-			WithErr(err).
-			WithMessage("failed to unmarshal genres").
-			WithKind(richerror.KindUnexpected)
+	if err := json.Unmarshal(genresJSON, &s.Genres); err != nil {
+		return entity.Series{}, richerror.New(op).WithErr(err).WithMessage("failed to unmarshal genres").WithKind(richerror.KindUnexpected)
+	}
+	if err := json.Unmarshal(altTitlesJSON, &s.AlternativeTitles); err != nil {
+		return entity.Series{}, richerror.New(op).WithErr(err).WithMessage("failed to unmarshal alternative titles").WithKind(richerror.KindUnexpected)
 	}
 
-	if err := json.Unmarshal(altTitlesJSON, &series.AlternativeTitles); err != nil {
-		return entity.Series{}, richerror.New(op).
-			WithErr(err).
-			WithMessage("failed to unmarshal alternative titles").
-			WithKind(richerror.KindUnexpected)
-	}
-
-	return series, nil
+	return s, nil
 }

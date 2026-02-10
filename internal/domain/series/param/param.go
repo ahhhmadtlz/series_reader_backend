@@ -39,6 +39,8 @@ type PaginationMeta struct {
 type CreateSeriesRequest struct {
 	Title             string   `json:"title"`
 	Slug              string   `json:"slug"`
+	SlugID            string   `json:"slug_id"`
+	FullSlug          string   `json:"full_slug"`
 	Description       string   `json:"description"`
 	Author            string   `json:"author"`
 	Artist            string   `json:"artist"`
@@ -69,6 +71,8 @@ type SeriesResponse struct {
 	ID                uint     `json:"id"`
 	Title             string   `json:"title"`
 	Slug              string   `json:"slug"`
+	SlugID					  string   `json:"slug_id"`
+	FullSlug          string   `json:"full_slug"`
 	Description       string   `json:"description"`
 	Author            string   `json:"author"`
 	Artist            string   `json:"artist"`

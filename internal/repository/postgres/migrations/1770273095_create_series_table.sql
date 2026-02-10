@@ -4,7 +4,9 @@
 CREATE TABLE IF NOT EXISTS series (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) UNIQUE NOT NULL,
+    slug TEXT NOT NULL,          
+    slug_id CHAR(8) NOT NULL,     
+    full_slug TEXT NOT NULL,      
     description TEXT,
     author VARCHAR(255),
     artist VARCHAR(255),

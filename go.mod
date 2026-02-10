@@ -30,6 +30,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/rubenv/sql-migrate v1.8.1
+	github.com/segmentio/ksuid v1.0.4
 	go.uber.org/zap v1.27.1
 	golang.org/x/sys v0.39.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1

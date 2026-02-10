@@ -7,6 +7,7 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/param"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/pkg/richerror"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/pkg/slugify"
+	"github.com/segmentio/ksuid"
 )
 
 func (s Service) Create(ctx context.Context,req param.CreateSeriesRequest)(param.SeriesResponse,error){
@@ -31,10 +32,15 @@ func (s Service) Create(ctx context.Context,req param.CreateSeriesRequest)(param
 			return exists
 		})
 	}
+	slugID := ksuid.New().String()[0:8]
+
+	fullSlug := slug + "-" + slugID
 
 	series := entity.Series{
 		Title:             req.Title,
 		Slug:              slug,
+		SlugID:            slugID,
+		FullSlug:          fullSlug,
 		Description:       req.Description,
 		Author:            req.Author,
 		Artist:            req.Artist,
