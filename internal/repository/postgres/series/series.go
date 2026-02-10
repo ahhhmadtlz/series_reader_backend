@@ -309,7 +309,7 @@ func (r *PostgresRepository) Update(ctx context.Context, id uint, series entity.
 			title = $1,
 			slug = $2,
 			slug_id = $3,
-			full_slug = $4
+			full_slug = $4,
 			description = $5,
 			author = $6,
 			artist = $7,
