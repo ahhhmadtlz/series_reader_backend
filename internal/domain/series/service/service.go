@@ -35,6 +35,8 @@ func toSeriesResponse(series entity.Series) param.SeriesResponse {
 		ID:                series.ID,
 		Title:             series.Title,
 		Slug:              series.Slug,
+	  SlugID:            series.SlugID,   
+    FullSlug:          series.FullSlug, 
 		Description:       series.Description,
 		Author:            series.Author,
 		Artist:            series.Artist,

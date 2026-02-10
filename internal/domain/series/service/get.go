@@ -18,13 +18,13 @@ func (s Service) GetByID(ctx context.Context, id uint) (param.SeriesResponse, er
 	return toSeriesResponse(series), nil
 }
 
-func (s Service) GetBySlug(ctx context.Context, slug string) (param.SeriesResponse, error) {
-	const op = richerror.Op("service.series.GetBySlug")
+func (s Service) GetByFullSlug(ctx context.Context, fullSlug string) (param.SeriesResponse, error) {
+    const op = richerror.Op("service.series.GetByFullSlug")
 
-	series, err := s.repo.GetBySlug(ctx, slug)
-	if err != nil {
-		return param.SeriesResponse{}, richerror.New(op).WithErr(err).WithMessage("failed to get series").WithKind(richerror.KindNotFound)
-	}
+    series, err := s.repo.GetByFullSlug(ctx, fullSlug)
+    if err != nil {
+        return param.SeriesResponse{}, richerror.New(op).WithErr(err).WithMessage("failed to get series by slug").WithKind(richerror.KindNotFound)
+    }
 
-	return toSeriesResponse(series), nil
+    return toSeriesResponse(series), nil
 }

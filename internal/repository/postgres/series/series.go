@@ -94,7 +94,7 @@ func (r *PostgresRepository) GetByID(ctx context.Context,id uint)(entity.Series,
 	const op=richerror.Op("repository.postgres.series.GetByID")
 
 	query:=`
-	SELECT id,title,slug,description,author,artist,status,type,
+	SELECT id,title,slug,slug_id,full_slug,description,author,artist,status,type,
 	genres,alternative_titles,cover_image_url,publication_year,view_count,rating,is_published,created_at,updated_at
 	FROM series
 	WHERE id=$1
@@ -107,6 +107,8 @@ func (r *PostgresRepository) GetByID(ctx context.Context,id uint)(entity.Series,
 		&series.ID,
     &series.Title,
     &series.Slug,
+		&series.SlugID,
+    &series.FullSlug,
 		&series.Description,
 		&series.Author,
 		&series.Artist,
@@ -199,7 +201,7 @@ func (r *PostgresRepository)GetList(ctx context.Context,req param.GetListRequest
 		}
 		switch req.Sort.SortBy{
 			case "rating","view_count","created_at","title":
-         orderBy=fmt.Sprint("%s %s",req.Sort.SortBy,direction)
+         orderBy=fmt.Sprintf("%s %s",req.Sort.SortBy,direction)
 		}
 	}
 
@@ -219,7 +221,7 @@ func (r *PostgresRepository)GetList(ctx context.Context,req param.GetListRequest
 	offset:=(page-1)*pageSize
 
 	query:=fmt.Sprintf(`
-	  SELECT id ,title,slug,description,author,artist,status,type,
+	  SELECT id ,title,slug,slug_id,full_slug,description,author,artist,status,type,
 		genres,alternative_titles,cover_image_url,publication_year,
 		view_count,rating,is_published,created_at ,updated_at
 		FROM series
@@ -248,6 +250,8 @@ func (r *PostgresRepository)GetList(ctx context.Context,req param.GetListRequest
 			&series.ID,
 			&series.Title,
 			&series.Slug,
+			&series.SlugID,
+			&series.FullSlug,
 			&series.Description,
 			&series.Author,
 			&series.Artist,
@@ -304,17 +308,19 @@ func (r *PostgresRepository) Update(ctx context.Context, id uint, series entity.
 		UPDATE series SET
 			title = $1,
 			slug = $2,
-			description = $3,
-			author = $4,
-			artist = $5,
-			status = $6,
-			type = $7,
-			genres = $8,
-			alternative_titles = $9,
-			cover_image_url = $10,
-			publication_year = $11,
-			is_published = $12
-		WHERE id = $13
+			slug_id = $3,
+			full_slug = $4
+			description = $5,
+			author = $6,
+			artist = $7,
+			status = $8,
+			type = $9,
+			genres = $10,
+			alternative_titles = $11,
+			cover_image_url = $12,
+			publication_year = $13,
+			is_published = $14
+		WHERE id = $15
 		RETURNING view_count, rating, created_at, updated_at
 	`
 
@@ -324,6 +330,8 @@ func (r *PostgresRepository) Update(ctx context.Context, id uint, series entity.
 		query,
 		series.Title,
 		series.Slug,
+		series.SlugID,
+		series.FullSlug,
 		series.Description,
 		series.Author,
 		series.Artist,
@@ -348,6 +356,8 @@ func (r *PostgresRepository) Update(ctx context.Context, id uint, series entity.
 	updatedSeries.ID = id
 	updatedSeries.Title = series.Title
 	updatedSeries.Slug = series.Slug
+	updatedSeries.SlugID=series.SlugID
+	updatedSeries.FullSlug=series.FullSlug
 	updatedSeries.Description = series.Description
 	updatedSeries.Author = series.Author
 	updatedSeries.Artist = series.Artist
@@ -420,7 +430,7 @@ func (r *PostgresRepository) IsSlugExists(ctx context.Context, slug string) (boo
 	return exists, nil
 }
 
-func (r *PostgresRepository) GetBySlug(ctx context.Context, fullSlug string) (entity.Series, error) {
+func (r *PostgresRepository) GetByFullSlug(ctx context.Context, fullSlug string) (entity.Series, error) {
 	const op = richerror.Op("repository.postgres.series.GetBySlug")
 
 	query := `
