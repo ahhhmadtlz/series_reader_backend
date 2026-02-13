@@ -4,7 +4,12 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/entity"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/param"
 )
+
 func toChapterResponse(chapter *entity.Chapter) param.ChapterResponse {
+	if chapter == nil {
+		return param.ChapterResponse{}
+	}
+
 	return param.ChapterResponse{
 		ID:            chapter.ID,
 		SeriesID:      chapter.SeriesID,
@@ -14,6 +19,10 @@ func toChapterResponse(chapter *entity.Chapter) param.ChapterResponse {
 }
 
 func toChapterWithPagesResponse(chapter *entity.Chapter, pages []entity.ChapterPage) param.ChapterWithPagesResponse {
+	if chapter == nil {
+		return param.ChapterWithPagesResponse{}
+	}
+
 	pageResponses := make([]param.ChapterPageResponse, len(pages))
 	for i, p := range pages {
 		pageResponses[i] = param.ChapterPageResponse{
@@ -29,5 +38,17 @@ func toChapterWithPagesResponse(chapter *entity.Chapter, pages []entity.ChapterP
 		ChapterNumber: chapter.ChapterNumber,
 		Title:         chapter.Title,
 		Pages:         pageResponses,
+	}
+}
+
+func toChapterPageResponse(page *entity.ChapterPage) param.ChapterPageResponse {
+	if page == nil {
+		return param.ChapterPageResponse{}
+	}
+
+	return param.ChapterPageResponse{
+		ID:         page.ID,
+		PageNumber: page.PageNumber,
+		ImageURL:   page.ImageURL,
 	}
 }
