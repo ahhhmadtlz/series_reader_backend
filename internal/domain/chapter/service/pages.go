@@ -79,3 +79,16 @@ func (s Service) GetPageByNumber(ctx context.Context, chapterID uint, pageNumber
 		ImageURL:   page.ImageURL,
 	}, nil
 }
+
+func (s Service) DeletePage(ctx context.Context, pageID uint) error {
+	const op = richerror.Op("service.chapter.DeletePage")
+
+	err := s.repo.DeletePage(ctx, pageID)
+	if err != nil {
+		return richerror.New(op).
+			WithErr(err).
+			WithMessage("failed to delete page")
+	}
+
+	return nil
+}
