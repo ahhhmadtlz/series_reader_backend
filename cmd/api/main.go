@@ -8,13 +8,15 @@ import (
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/config"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver"
-	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/serieshandler"
-	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/service"
-	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/validator"
+	chapterservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/service"
+	chaptervalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/validator"
+	seriesservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/service"
+	seriesvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/validator"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/repository/migrator"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres"
+	chapterrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/chapter"
 	seriesrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/series"
 )
 
@@ -56,40 +58,25 @@ func main() {
 	logger.Info("Migrations completed successfully")
 
 
-	// Initialize repositories
-	seriesRepository := seriesrepo.New(postgresDB.Conn())
-	logger.Info("Series repository initialized")
+  // ========================================
+	// Phase 2: Setup Services
+	// ========================================
 
-	// Initialize validators
-	seriesValidator := validator.New()
-	logger.Info("Series validator initialized")
+	seriesSvc,seriesValidator,chapterSvc,chapterValidator:=setupServices(postgresDB)
 
-	// Initialize services
-	seriesService := service.New(seriesRepository)
-	logger.Info("Series service initialized")
 
-	// Initialize handlers
-	seriesHandler := serieshandler.New(seriesService, seriesValidator)
-	logger.Info("Series handler initialized")
+  // ========================================
+	// Phase 3: HTTP Server Setup
+	// ========================================
+	server:=httpserver.New(
+		*cfg,
+		seriesSvc,
+		seriesValidator,
+		chapterSvc,
+		chapterValidator,
+	)
 
-	// Initialize HTTP server
-	server := httpserver.New(*cfg)
-
-	// Setup routes
-	seriesHandler.SetRoutes(server.Router)
-	logger.Info("Series routes registered",
-			"routes", []string{
-				"POST /series",
-				"GET /series/:id",
-				"GET /series/slug/:slug",
-				"GET /series",
-				"PUT /series/:id",
-				"DELETE /series/:id",
-			},
-		)
-
-	
-	
+	logger.Info("HTTP server initialized")
 
 	// 6. Start server in a goroutine
 	go func() {
@@ -119,32 +106,37 @@ func main() {
 }
 
 
-// func setupServices(
-// 	cfg config.Config,
-// 	mysqlDB *mysql.MySQLDB,
-// ) (
-// 	auth.Service,
-// 	userservice.Service,
-// 	uservalidator.Validator,
-// 	categoryservice.Service,
-// 	categoryvalidator.Validator,
-// 	transactionservice.Service,
-// 	transactionvalidator.Validator,
-// ) {
-// 	// Auth service
-// 	authSvc := auth.New(cfg.Auth)
+func setupServices(db *postgres.DB) (
+	seriesservice.Service,
+	seriesvalidator.Validator,
+	chapterservice.Service,
+	chaptervalidator.Validator,
+) {
+	// ========================================
+	// Series Setup
+	// ========================================
 
-// 	userRepo := userrepository.New(mysqlDB)
-// 	userValidator := uservalidator.New(userRepo)
-// 	userSvc := userservice.New(authSvc, userRepo)
+	seriesRepository := seriesrepo.New(db.Conn())
+	logger.Info("Series repository initialized")
 
-// 	categoryRepo := categoryrepository.New(mysqlDB)
-// 	categoryValidator := categoryvalidator.New(categoryRepo)
-// 	categorySvc := categoryservice.New(categoryRepo)
+	seriesValidator := seriesvalidator.New()
+	logger.Info("Series validator initialized")
 
-// 	transactionRepo := transactionrepository.New(mysqlDB)
-// 	transactionValidator := transactionvalidator.New(transactionRepo, categoryRepo)
-// 	transactionSvc := transactionservice.New(transactionRepo)
+	seriesService := seriesservice.New(seriesRepository)
+	logger.Info("Series service initialized")
 
-// 	return authSvc, userSvc, userValidator, categorySvc, categoryValidator, transactionSvc, transactionValidator
-// }
+	// ========================================
+	// Chapter Setup
+	// ========================================
+
+	chapterRepository := chapterrepo.New(db.Conn())
+	logger.Info("Chapter repository initialized")
+
+	chapterValidator := chaptervalidator.New()
+	logger.Info("Chapter validator initialized")
+
+	chapterService := chapterservice.New(chapterRepository)
+	logger.Info("Chapter service initialized")
+
+	return seriesService, seriesValidator, chapterService, chapterValidator
+}
