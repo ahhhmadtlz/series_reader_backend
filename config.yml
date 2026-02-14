@@ -26,3 +26,9 @@ logger:
   compress: true               # compress rotated logs
 
 
+auth:
+  sign_key: "secret_key_need_to_be_change_for_production"
+  access_expiration_time: 48h 
+  refresh_expiration_time: 168h  
+  access_subject: "access-token"
+  refresh_subject: "refresh-token"
