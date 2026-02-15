@@ -39,6 +39,7 @@ func toUserInfo(user entity.User) param.UserInfo {
 		PhoneNumber: user.PhoneNumber,
 		AvatarURL:   user.AvatarURL,
 		Bio:         user.Bio,
+		IsActive:    user.IsActive,
 		CreatedAt:   user.CreatedAt,
 	}
 }

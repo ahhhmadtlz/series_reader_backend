@@ -9,7 +9,7 @@ type User struct {
 	Password    string
 	AvatarURL   string
 	Bio         string
-	IsActive bool
+	IsActive    bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

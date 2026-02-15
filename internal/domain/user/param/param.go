@@ -8,7 +8,7 @@ type UserInfo struct {
 	PhoneNumber string    `json:"phone_number"`
 	AvatarURL   string    `json:"avatar_url"`
 	Bio         string    `json:"bio"`
-	IsActive bool `json:"is_active"`
+	IsActive    bool `json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
