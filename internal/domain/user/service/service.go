@@ -18,6 +18,8 @@ type Repository interface {
 	RegisterUser(ctx context.Context,user entity.User)(entity.User,error)
 	GetUserByID(ctx context.Context,userID uint)(entity.User,error)
 	GetUserByPhoneNumber(ctx context.Context,phoneNumber string)(entity.User,error)
+	UpdateUser(ctx context.Context, user entity.User)(entity.User,error)
+	UpdatePassword(ctx context.Context,userID uint ,newPassword string)error
 }
 
 type Service struct {
@@ -40,6 +42,7 @@ func toUserInfo(user entity.User) param.UserInfo {
 		AvatarURL:   user.AvatarURL,
 		Bio:         user.Bio,
 		IsActive:    user.IsActive,
+		UsernameLastChangedAt: user.UsernameLastChangedAt,
 		CreatedAt:   user.CreatedAt,
 	}
 }

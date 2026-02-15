@@ -13,12 +13,16 @@ var (
 	
 	// Username: alphanumeric, underscore, hyphen (3-30 chars)
 	usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,30}$`)
+
+ // URL regex (basic validation for avatar_url)
+	urlRegex = regexp.MustCompile(`^https?://[^\s]+$`)
 )
 
 type Repository interface {
 	IsPhoneNumberUnique(ctx context.Context, phoneNumber string) (bool, error)
 	IsUsernameUnique(ctx context.Context, username string) (bool, error)
 	GetUserByPhoneNumber(ctx context.Context, phoneNumber string) (entity.User, error)
+  GetUserByID(ctx context.Context, userID uint) (entity.User, error) 
 }
 
 type Validator struct {

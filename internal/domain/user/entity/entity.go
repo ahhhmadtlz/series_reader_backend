@@ -10,6 +10,7 @@ type User struct {
 	AvatarURL   string
 	Bio         string
 	IsActive    bool
+	UsernameLastChangedAt *time.Time
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
