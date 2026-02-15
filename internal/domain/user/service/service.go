@@ -1,11 +1,10 @@
 package service
 
 import (
-	"context"
-
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/auth"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/entity"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/param"
+	userRepository "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/repository"
 )
 
 type AuthService interface {
@@ -14,20 +13,14 @@ type AuthService interface {
 	ParseRefreshToken(refreshToken string)(*auth.Claims,error)
 }
 
-type Repository interface {
-	RegisterUser(ctx context.Context,user entity.User)(entity.User,error)
-	GetUserByID(ctx context.Context,userID uint)(entity.User,error)
-	GetUserByPhoneNumber(ctx context.Context,phoneNumber string)(entity.User,error)
-	UpdateUser(ctx context.Context, user entity.User)(entity.User,error)
-	UpdatePassword(ctx context.Context,userID uint ,newPassword string)error
-}
+
 
 type Service struct {
-	repo Repository
+	repo userRepository.Repository
 	auth AuthService
 }
 
-func New(authService AuthService,repo Repository)Service{
+func New(authService AuthService,repo userRepository.Repository)Service{
 	return Service{
 		auth:authService,
 		repo:repo,
