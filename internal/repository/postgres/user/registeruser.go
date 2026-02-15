@@ -7,7 +7,7 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/pkg/richerror"
 )
 
-func (r *PostgresRepository) Registeruser(ctx context.Context,user entity.User)(entity.User,error){
+func (r *PostgresRepository) RegisterUser(ctx context.Context,user entity.User)(entity.User,error){
 	const op =richerror.Op("repository.postgres.user.RegisterUser")
 
 	query:=`
