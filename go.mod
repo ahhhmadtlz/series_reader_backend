@@ -4,6 +4,8 @@ go 1.24.5
 
 require (
 	github.com/knadh/koanf v1.5.0
+	github.com/labstack/echo-jwt/v4 v4.4.0
+	golang.org/x/crypto v0.46.0
 	golang.org/x/text v0.33.0
 )
 
@@ -15,7 +17,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 )

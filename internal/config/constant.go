@@ -7,3 +7,6 @@ const (
 	LoggerMaxBackups       = 5
 	LoggerCompress         = true
 )
+
+
+const AuthMiddlewareContextKey = "auth_claims"

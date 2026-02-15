@@ -8,16 +8,24 @@ import (
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/config"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver"
+
+	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/auth"
 	chapterservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/service"
 	chaptervalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/validator"
+
 	seriesservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/service"
 	seriesvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/validator"
+
+	userservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/service"
+	uservalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/validator"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/repository/migrator"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres"
+
 	chapterrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/chapter"
 	seriesrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/series"
+	userrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/user"
 )
 
 func main() {
@@ -62,7 +70,7 @@ func main() {
 	// Phase 2: Setup Services
 	// ========================================
 
-	seriesSvc,seriesValidator,chapterSvc,chapterValidator:=setupServices(postgresDB)
+		authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator := setupServices(postgresDB, cfg)
 
 
   // ========================================
@@ -70,10 +78,13 @@ func main() {
 	// ========================================
 	server:=httpserver.New(
 		*cfg,
+		authSvc,
 		seriesSvc,
 		seriesValidator,
 		chapterSvc,
 		chapterValidator,
+		userSvc,
+		userValidator,
 	)
 
 	logger.Info("HTTP server initialized")
@@ -86,6 +97,7 @@ func main() {
 	logger.Info("Server is ready",
 		"health_check", "http://localhost:8080/health-check",
 		"series_api", "http://localhost:8080/series",
+		"auth_api", "http://localhost:8080/users",
 	)
 
 	// 7. Wait for interrupt signal for graceful shutdown
@@ -106,16 +118,24 @@ func main() {
 }
 
 
-func setupServices(db *postgres.DB) (
+func setupServices(db *postgres.DB,cfg *config.Config) (
+	auth.Service,
 	seriesservice.Service,
 	seriesvalidator.Validator,
 	chapterservice.Service,
 	chaptervalidator.Validator,
+	userservice.Service,
+	uservalidator.Validator,
 ) {
+// ========================================
+	// Auth Setup (needed by user service)
+	// ========================================
+	authService := auth.New(cfg.Auth)
+	logger.Info("Auth service initialized")
+
 	// ========================================
 	// Series Setup
 	// ========================================
-
 	seriesRepository := seriesrepo.New(db.Conn())
 	logger.Info("Series repository initialized")
 
@@ -128,7 +148,6 @@ func setupServices(db *postgres.DB) (
 	// ========================================
 	// Chapter Setup
 	// ========================================
-
 	chapterRepository := chapterrepo.New(db.Conn())
 	logger.Info("Chapter repository initialized")
 
@@ -138,5 +157,17 @@ func setupServices(db *postgres.DB) (
 	chapterService := chapterservice.New(chapterRepository)
 	logger.Info("Chapter service initialized")
 
-	return seriesService, seriesValidator, chapterService, chapterValidator
+	// ========================================
+	// User Setup
+	// ========================================
+	userRepository := userrepo.New(db.Conn())
+	logger.Info("User repository initialized")
+
+	userValidator := uservalidator.New(userRepository)
+	logger.Info("User validator initialized")
+
+	userService := userservice.New(authService, userRepository)
+	logger.Info("User service initialized")
+
+	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator
 }

@@ -6,39 +6,48 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/config"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/chapterhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/serieshandler"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/userhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/auth"
 	seriesservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/service"
 	seriesvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/validator"
 
 	chapterservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/service"
 	chaptervalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/validator"
-	
+	userservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/service"
+	uservalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/validator"
 )
 
 type Server struct {
 	config config.Config
 	Router *echo.Echo
+	authService auth.Service
 	seriesHandler serieshandler.Handler
 	chapterHandler chapterhandler.Handler
-
+	userHandler userhandler.Handler
 }
 
 // New creates a new HTTP server
 func New(
 	config config.Config,
+	authSvc auth.Service,
 	seriesSvc seriesservice.Service,
 	seriesValidator seriesvalidator.Validator,
 	chapterSvc chapterservice.Service,
 	chapterValidator chaptervalidator.Validator,
+	userSvc userservice.Service,
+	userValidator uservalidator.Validator,
 ) Server {
 	return Server{
 		Router: echo.New(),
 		config: config,
+		authService: authSvc,
 		seriesHandler: serieshandler.New(seriesSvc, seriesValidator),
 		chapterHandler: chapterhandler.New(chapterSvc, seriesSvc, chapterValidator),
+		userHandler: userhandler.New(userSvc,userValidator),
 	}
 }
 
@@ -99,6 +108,7 @@ func (s *Server) Serve() {
 	//register all routes
 	s.seriesHandler.SetRoutes(s.Router)
 	s.chapterHandler.SetRoutes(s.Router)
+  s.userHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 
 	// Start server
 	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)
