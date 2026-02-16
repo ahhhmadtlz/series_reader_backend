@@ -10,6 +10,7 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/auth"
+
 	chapterservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/service"
 	chaptervalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/validator"
 
@@ -18,6 +19,10 @@ import (
 
 	userservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/service"
 	uservalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/validator"
+
+	bookmarkservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/service"
+	bookmarkvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/validator"
+	bookmarkrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/bookmark"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/repository/migrator"
@@ -70,7 +75,7 @@ func main() {
 	// Phase 2: Setup Services
 	// ========================================
 
-		authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator := setupServices(postgresDB, cfg)
+	authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator, bookmarkSvc, bookmarkValidator := setupServices(postgresDB, cfg) 
 
 
   // ========================================
@@ -85,6 +90,8 @@ func main() {
 		chapterValidator,
 		userSvc,
 		userValidator,
+		bookmarkSvc,
+		bookmarkValidator,
 	)
 
 	logger.Info("HTTP server initialized")
@@ -126,6 +133,8 @@ func setupServices(db *postgres.DB,cfg *config.Config) (
 	chaptervalidator.Validator,
 	userservice.Service,
 	uservalidator.Validator,
+	bookmarkservice.Service,
+	bookmarkvalidator.Validator,
 ) {
 // ========================================
 	// Auth Setup (needed by user service)
@@ -169,5 +178,18 @@ func setupServices(db *postgres.DB,cfg *config.Config) (
 	userService := userservice.New(authService, userRepository)
 	logger.Info("User service initialized")
 
-	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator
+
+	// ========================================
+	// Bookmark Setup
+	// ========================================
+	bookmarkRepository := bookmarkrepo.New(db.Conn())  
+	logger.Info("Bookmark repository initialized")
+
+	bookmarkValidator := bookmarkvalidator.New()  
+	logger.Info("Bookmark validator initialized")
+
+	bookmarkService := bookmarkservice.New(bookmarkRepository, seriesRepository) 
+	logger.Info("Bookmark service initialized")
+
+	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator, bookmarkService, bookmarkValidator
 }

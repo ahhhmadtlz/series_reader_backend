@@ -19,6 +19,10 @@ import (
 	chaptervalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/validator"
 	userservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/service"
 	uservalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/validator"
+
+	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/bookmarkhandler"
+	bookmarkservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/service"
+	bookmarkvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/validator"
 )
 
 type Server struct {
@@ -28,6 +32,7 @@ type Server struct {
 	seriesHandler serieshandler.Handler
 	chapterHandler chapterhandler.Handler
 	userHandler userhandler.Handler
+	bookmarkHandler bookmarkhandler.Handler
 }
 
 // New creates a new HTTP server
@@ -40,6 +45,8 @@ func New(
 	chapterValidator chaptervalidator.Validator,
 	userSvc userservice.Service,
 	userValidator uservalidator.Validator,
+	bookmarkSvc bookmarkservice.Service,       
+	bookmarkValidator bookmarkvalidator.Validator, 
 ) Server {
 	return Server{
 		Router: echo.New(),
@@ -48,6 +55,7 @@ func New(
 		seriesHandler: serieshandler.New(seriesSvc, seriesValidator),
 		chapterHandler: chapterhandler.New(chapterSvc, seriesSvc, chapterValidator),
 		userHandler: userhandler.New(userSvc,userValidator),
+		bookmarkHandler: bookmarkhandler.New(bookmarkSvc, bookmarkValidator),
 	}
 }
 
@@ -109,6 +117,7 @@ func (s *Server) Serve() {
 	s.seriesHandler.SetRoutes(s.Router)
 	s.chapterHandler.SetRoutes(s.Router)
   s.userHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
+	s.bookmarkHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 
 	// Start server
 	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)
