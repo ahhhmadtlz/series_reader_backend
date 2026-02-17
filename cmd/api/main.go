@@ -24,6 +24,11 @@ import (
 	bookmarkvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/validator"
 	bookmarkrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/bookmark"
 
+
+	readinghistoryservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/service"
+	readinghistoryvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/validator"
+	readinghistoryrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/readinghistory"
+
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/repository/migrator"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres"
@@ -75,13 +80,12 @@ func main() {
 	// Phase 2: Setup Services
 	// ========================================
 
-	authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator, bookmarkSvc, bookmarkValidator := setupServices(postgresDB, cfg) 
-
+authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator, bookmarkSvc, bookmarkValidator, readingHistorySvc, readingHistoryValidator := setupServices(postgresDB, cfg)
 
   // ========================================
 	// Phase 3: HTTP Server Setup
 	// ========================================
-	server:=httpserver.New(
+	server := httpserver.New(
 		*cfg,
 		authSvc,
 		seriesSvc,
@@ -92,6 +96,8 @@ func main() {
 		userValidator,
 		bookmarkSvc,
 		bookmarkValidator,
+		readingHistorySvc,
+		readingHistoryValidator,
 	)
 
 	logger.Info("HTTP server initialized")
@@ -124,7 +130,6 @@ func main() {
 	logger.Info("Application stopped")
 }
 
-
 func setupServices(db *postgres.DB,cfg *config.Config) (
 	auth.Service,
 	seriesservice.Service,
@@ -135,6 +140,8 @@ func setupServices(db *postgres.DB,cfg *config.Config) (
 	uservalidator.Validator,
 	bookmarkservice.Service,
 	bookmarkvalidator.Validator,
+	readinghistoryservice.Service,
+	readinghistoryvalidator.Validator,
 ) {
 // ========================================
 	// Auth Setup (needed by user service)
@@ -191,5 +198,17 @@ func setupServices(db *postgres.DB,cfg *config.Config) (
 	bookmarkService := bookmarkservice.New(bookmarkRepository, seriesRepository) 
 	logger.Info("Bookmark service initialized")
 
-	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator, bookmarkService, bookmarkValidator
+	// ========================================
+	// Reading History Setup
+	// ========================================
+	readingHistoryRepository := readinghistoryrepo.New(db.Conn())
+	logger.Info("Reading history repository initialized")
+
+	readingHistoryValidator := readinghistoryvalidator.New()
+	logger.Info("Reading history validator initialized")
+
+	readingHistoryService := readinghistoryservice.New(readingHistoryRepository, chapterRepository, seriesRepository)
+	logger.Info("Reading history service initialized")
+
+	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator, bookmarkService, bookmarkValidator, readingHistoryService, readingHistoryValidator
 }

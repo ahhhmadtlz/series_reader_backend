@@ -23,6 +23,10 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/bookmarkhandler"
 	bookmarkservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/service"
 	bookmarkvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/validator"
+
+	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/readinghistoryhandler"
+	readinghistoryservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/service"
+	readinghistoryvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/validator"
 )
 
 type Server struct {
@@ -33,6 +37,7 @@ type Server struct {
 	chapterHandler chapterhandler.Handler
 	userHandler userhandler.Handler
 	bookmarkHandler bookmarkhandler.Handler
+	readingHistoryHandler readinghistoryhandler.Handler
 }
 
 // New creates a new HTTP server
@@ -47,6 +52,8 @@ func New(
 	userValidator uservalidator.Validator,
 	bookmarkSvc bookmarkservice.Service,       
 	bookmarkValidator bookmarkvalidator.Validator, 
+	readingHistorySvc readinghistoryservice.Service,
+	readingHistoryValidator readinghistoryvalidator.Validator,
 ) Server {
 	return Server{
 		Router: echo.New(),
@@ -56,6 +63,7 @@ func New(
 		chapterHandler: chapterhandler.New(chapterSvc, seriesSvc, chapterValidator),
 		userHandler: userhandler.New(userSvc,userValidator),
 		bookmarkHandler: bookmarkhandler.New(bookmarkSvc, bookmarkValidator),
+		readingHistoryHandler: readinghistoryhandler.New(readingHistorySvc, readingHistoryValidator),
 	}
 }
 
@@ -118,6 +126,7 @@ func (s *Server) Serve() {
 	s.chapterHandler.SetRoutes(s.Router)
   s.userHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 	s.bookmarkHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
+	s.readingHistoryHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 
 	// Start server
 	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)
