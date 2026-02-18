@@ -1,6 +1,14 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	sharedentity "github.com/ahhhmadtlz/series_reader_backend/internal/domain/shared/entity"
+)
+
+// ============================================
+// Series Status & Type Constants
+// ============================================
 
 const (
 	StatusOngoing   = "ongoing"
@@ -17,50 +25,70 @@ const (
 	TypeWebtoon = "webtoon"
 )
 
+// ============================================
+// Series Entity
+// ============================================
+
 type Series struct {
-	ID                uint      `json:"id"`
-	Title             string    `json:"title"`
-	Slug              string    `json:"slug"`
-	SlugID					  string    `json:"slug_id"`
-	FullSlug          string    `json:"full_slug"`
-	Description       string    `json:"description"`
-	Author            string    `json:"author"`
-	Artist            string    `json:"artist"`
-	Status            string    `json:"status"`
-	Type              string    `json:"type"`
-	Genres            []string  `json:"genres"`
-	AlternativeTitles []string  `json:"alternative_titles"`
-	CoverImageURL     string    `json:"cover_image_url"`
-	PublicationYear   *int      `json:"publication_year"`
-	ViewCount         int       `json:"view_count"`
-	Rating            float64   `json:"rating"`
-	IsPublished       bool      `json:"is_published"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
+	ID                uint
+	Title             string
+	Slug              string
+	SlugID            string
+	FullSlug          string
+	Description       string
+	Author            string
+	Artist            string
+	Status            string
+	Type              string
+	Genres            []string
+	AlternativeTitles []string
+	CoverImageURL     string
+	PublicationYear   *int
+	ViewCount         int
+	Rating            float64
+	IsPublished       bool
+	IsPremiumOnly     bool  
+	CreatedBy         *uint
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
+// ============================================
+// SeriesCollaborator Entity
+// ============================================
 
-func ValidStatuses()[]string {
-	return []string{StatusOngoing,StatusCompleted,StatusHiatus,StatusCancelled}
+type SeriesCollaborator struct {
+	SeriesID          uint
+	UserID            uint
+	CollaborationRole sharedentity.CollaborationRole
+	AddedBy           uint
+	AddedAt           time.Time
 }
 
-func ValidTypes()[]string {
-	return []string{TypeManga,TypeManhwa,TypeManhua,TypeComic,TypeWebtoon}
+// ============================================
+// Validation Helpers
+// ============================================
+
+func ValidStatuses() []string {
+	return []string{StatusOngoing, StatusCompleted, StatusHiatus, StatusCancelled}
 }
 
-func IsValidStatus(status string)bool{
-	for _,s:=range ValidStatuses(){
-		if s==status{
+func ValidTypes() []string {
+	return []string{TypeManga, TypeManhwa, TypeManhua, TypeComic, TypeWebtoon}
+}
+
+func IsValidStatus(status string) bool {
+	for _, s := range ValidStatuses() {
+		if s == status {
 			return true
 		}
-	} 
-
+	}
 	return false
 }
 
-func IsValidType(t string )bool{
-	for _,typ:=range ValidTypes(){
-		if typ==t {
+func IsValidType(t string) bool {
+	for _, typ := range ValidTypes() {
+		if typ == t {
 			return true
 		}
 	}

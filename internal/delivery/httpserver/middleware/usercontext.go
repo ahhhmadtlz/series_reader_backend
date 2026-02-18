@@ -15,6 +15,8 @@ func UserContext() echo.MiddlewareFunc {
 			}
 			
 			c.Set("user_id", claims.UserID)
+			c.Set("user_role",claims.Role)
+			c.Set("subscription_tier",claims.SubscriptionTier)
 			
 			return next(c)
 		}

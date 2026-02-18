@@ -29,13 +29,29 @@ func New(authService AuthService,repo userRepository.Repository)Service{
 
 func toUserInfo(user entity.User) param.UserInfo {
 	return param.UserInfo{
-		ID:          user.ID,
-		Username:    user.Username,
-		PhoneNumber: user.PhoneNumber,
-		AvatarURL:   user.AvatarURL,
-		Bio:         user.Bio,
-		IsActive:    user.IsActive,
+		ID:                    user.ID,
+		Username:              user.Username,
+		PhoneNumber:           user.PhoneNumber,
+		AvatarURL:             user.AvatarURL,
+		Bio:                   user.Bio,
+		Role:                  user.Role.String(),
+		SubscriptionTier:      user.SubscriptionTier.String(),
+		IsActive:              user.IsActive,
 		UsernameLastChangedAt: user.UsernameLastChangedAt,
-		CreatedAt:   user.CreatedAt,
+		CreatedAt:             user.CreatedAt,
+	}
+}
+
+
+func toAdminUserInfo(user entity.User, permissions []string) param.AdminUserInfo {
+	return param.AdminUserInfo{
+		ID:               user.ID,
+		Username:         user.Username,
+		PhoneNumber:      user.PhoneNumber,
+		Role:             user.Role.String(),
+		SubscriptionTier: user.SubscriptionTier.String(),
+		IsActive:         user.IsActive,
+		Permissions:      permissions,
+		CreatedAt:        user.CreatedAt,
 	}
 }

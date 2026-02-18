@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/config"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/adminhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/chapterhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/serieshandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/userhandler"
@@ -38,6 +39,7 @@ type Server struct {
 	userHandler userhandler.Handler
 	bookmarkHandler bookmarkhandler.Handler
 	readingHistoryHandler readinghistoryhandler.Handler
+	adminHandler adminhandler.Handler
 }
 
 // New creates a new HTTP server
@@ -64,6 +66,7 @@ func New(
 		userHandler: userhandler.New(userSvc,userValidator),
 		bookmarkHandler: bookmarkhandler.New(bookmarkSvc, bookmarkValidator),
 		readingHistoryHandler: readinghistoryhandler.New(readingHistorySvc, readingHistoryValidator),
+		adminHandler: adminhandler.New(userSvc),
 	}
 }
 
@@ -122,11 +125,12 @@ func (s *Server) Serve() {
 	s.Router.GET("/health-check", s.healthCheck)
 
 	//register all routes
-	s.seriesHandler.SetRoutes(s.Router)
-	s.chapterHandler.SetRoutes(s.Router)
+	s.seriesHandler.SetRoutes(s.Router,s.authService,s.config.Auth)
+	s.chapterHandler.SetRoutes(s.Router,s.authService,s.config.Auth)
   s.userHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 	s.bookmarkHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 	s.readingHistoryHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
+	s.adminHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 
 	// Start server
 	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)

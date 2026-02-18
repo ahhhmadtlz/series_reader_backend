@@ -8,15 +8,15 @@ import (
 )
 
 func (s Service) CreateAccessToken(user entity.User) (string, error) {
-	return s.createToken(user.ID, s.config.AccessSubject, s.config.AccessExpirationTime)
+	return s.createToken(user, s.config.AccessSubject, s.config.AccessExpirationTime)
 }
 
 func (s Service) CreateRefreshToken(user entity.User) (string, error) {
-	return s.createToken(user.ID, s.config.RefreshSubject, s.config.RefreshExpirationTime)
+	return s.createToken(user, s.config.RefreshSubject, s.config.RefreshExpirationTime)
 }
 
 func (s Service) createToken(
-	userID uint,
+	user entity.User,
 	subject string,
 	expireDuration time.Duration,
 ) (string, error) {
@@ -26,7 +26,9 @@ func (s Service) createToken(
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expireDuration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		UserID: userID,
+		UserID: user.ID,
+		Role:user.Role,
+		SubscriptionTier: user.SubscriptionTier,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

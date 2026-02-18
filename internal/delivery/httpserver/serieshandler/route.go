@@ -1,14 +1,22 @@
 package serieshandler
 
-import "github.com/labstack/echo/v4"
+import (
+	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/middleware"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/auth"
+	"github.com/labstack/echo/v4"
+)
 
-func (h Handler) SetRoutes(e *echo.Echo) {
-	seriesGroup := e.Group("/series")
+func (h Handler) SetRoutes(e *echo.Echo, authService auth.Service, authConfig auth.Config) {
+	publicGroup := e.Group("/series")
+	publicGroup.GET("",h.getList)
+  publicGroup.GET("/:identifier", h.get) 
 
-	seriesGroup.POST("", h.create)
-  seriesGroup.GET("/:identifier", h.get) 
-	seriesGroup.GET("",h.getList)
-	seriesGroup.PUT("/:id",h.update)
-	seriesGroup.DELETE("/:id",h.delete)
+
+	protectedGroup := e.Group("/series")
+	protectedGroup.Use(middleware.Auth(authService,authConfig))
+	
+	protectedGroup.POST("", h.create,middleware.RequireManagerOrAdmin())
+	protectedGroup.PUT("/:id",h.update,middleware.RequireManagerOrAdmin())
+	protectedGroup.DELETE("/:id",h.delete,middleware.RequireAdmin())
 
 }
