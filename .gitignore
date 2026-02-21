@@ -33,3 +33,5 @@ logs/
 # Database
 *.db
 *.sqlite
+
+uploads

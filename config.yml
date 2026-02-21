@@ -24,11 +24,21 @@ logger:
   file_max_age_days: 30        # days to keep
   max_backups: 5              
   compress: true               # compress rotated logs
-
-
 auth:
   sign_key: "secret_key_need_to_be_change_for_production"
   access_expiration_time: 48h 
   refresh_expiration_time: 168h  
   access_subject: "access-token"
   refresh_subject: "refresh-token"
+
+  upload:
+    base_path: "./uploads"
+    base_url: "http://localhost:8080/uploads"
+    max_avatar_size_mb: 5
+    max_cover_size_mb: 10
+    max_page_size_mb: 15
+    allowed_mime_types:
+      - "image/jpeg"
+      - "image/jpg"
+      - "image/png"
+      - "image/webp"
