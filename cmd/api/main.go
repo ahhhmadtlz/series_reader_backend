@@ -8,6 +8,7 @@ import (
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/config"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/infrastructure/storage/local"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/auth"
 
@@ -24,7 +25,6 @@ import (
 	bookmarkvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/validator"
 	bookmarkrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/bookmark"
 
-
 	readinghistoryservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/service"
 	readinghistoryvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/validator"
 	readinghistoryrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/readinghistory"
@@ -36,6 +36,10 @@ import (
 	chapterrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/chapter"
 	seriesrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/series"
 	userrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/user"
+
+	uploadservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/service"
+	uploadvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/validator"
+	uploadrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/upload"
 )
 
 func main() {
@@ -80,7 +84,7 @@ func main() {
 	// Phase 2: Setup Services
 	// ========================================
 
-authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator, bookmarkSvc, bookmarkValidator, readingHistorySvc, readingHistoryValidator := setupServices(postgresDB, cfg)
+	authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator, bookmarkSvc, bookmarkValidator, readingHistorySvc, readingHistoryValidator ,uploadSvc, uploadValidator := setupServices(postgresDB, cfg)
 
   // ========================================
 	// Phase 3: HTTP Server Setup
@@ -98,6 +102,8 @@ authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, user
 		bookmarkValidator,
 		readingHistorySvc,
 		readingHistoryValidator,
+		uploadSvc,
+		uploadValidator,
 	)
 
 	logger.Info("HTTP server initialized")
@@ -130,7 +136,7 @@ authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, user
 	logger.Info("Application stopped")
 }
 
-func setupServices(db *postgres.DB,cfg *config.Config) (
+func setupServices(db *postgres.DB, cfg *config.Config) (
 	auth.Service,
 	seriesservice.Service,
 	seriesvalidator.Validator,
@@ -142,6 +148,8 @@ func setupServices(db *postgres.DB,cfg *config.Config) (
 	bookmarkvalidator.Validator,
 	readinghistoryservice.Service,
 	readinghistoryvalidator.Validator,
+	uploadservice.Service,         
+	uploadvalidator.Validator,     
 ) {
 // ========================================
 	// Auth Setup (needed by user service)
@@ -210,5 +218,30 @@ func setupServices(db *postgres.DB,cfg *config.Config) (
 	readingHistoryService := readinghistoryservice.New(readingHistoryRepository, chapterRepository, seriesRepository)
 	logger.Info("Reading history service initialized")
 
-	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator, bookmarkService, bookmarkValidator, readingHistoryService, readingHistoryValidator
+
+	// ========================================
+	// Upload Setup (NEW)
+	// ========================================
+	uploadRepository := uploadrepo.New(db.Conn())
+	logger.Info("Upload repository initialized")
+	
+
+	localStorage := local.New(cfg.Upload.BasePath, cfg.Upload.BaseURL)
+	logger.Info("Local storage initialized",
+		"base_path", cfg.Upload.BasePath,
+		"base_url", cfg.Upload.BaseURL,
+	)
+
+	uploadValidator := uploadvalidator.New(cfg.Upload)
+	logger.Info("Upload validator initialized")
+
+	uploadService := uploadservice.New(
+		uploadRepository,
+		userRepository,
+		seriesRepository,
+		localStorage,
+	)
+	logger.Info("Upload service initialized")
+
+	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator, bookmarkService, bookmarkValidator, readingHistoryService, readingHistoryValidator, uploadService, uploadValidator
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/adminhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/chapterhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/serieshandler"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/uploadhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/userhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
 	"github.com/labstack/echo/v4"
@@ -28,6 +29,9 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/readinghistoryhandler"
 	readinghistoryservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/service"
 	readinghistoryvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/validator"
+
+	uploadservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/service"
+	uploadvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/validator"
 )
 
 type Server struct {
@@ -40,6 +44,7 @@ type Server struct {
 	bookmarkHandler bookmarkhandler.Handler
 	readingHistoryHandler readinghistoryhandler.Handler
 	adminHandler adminhandler.Handler
+	uploadHandler uploadhandler.Handler
 }
 
 // New creates a new HTTP server
@@ -56,6 +61,8 @@ func New(
 	bookmarkValidator bookmarkvalidator.Validator, 
 	readingHistorySvc readinghistoryservice.Service,
 	readingHistoryValidator readinghistoryvalidator.Validator,
+	uploadSvc uploadservice.Service,
+	uploadValidator uploadvalidator.Validator,
 ) Server {
 	return Server{
 		Router: echo.New(),
@@ -67,6 +74,7 @@ func New(
 		bookmarkHandler: bookmarkhandler.New(bookmarkSvc, bookmarkValidator),
 		readingHistoryHandler: readinghistoryhandler.New(readingHistorySvc, readingHistoryValidator),
 		adminHandler: adminhandler.New(userSvc),
+		uploadHandler: uploadhandler.New(uploadSvc,uploadValidator),
 	}
 }
 
@@ -131,6 +139,7 @@ func (s *Server) Serve() {
 	s.bookmarkHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 	s.readingHistoryHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 	s.adminHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
+	s.uploadHandler.SetRoutes(s.Router,s.authService,s.config.Auth)
 
 	// Start server
 	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)
