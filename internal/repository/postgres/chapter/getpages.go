@@ -13,7 +13,7 @@ func (r *PostgresRepository) GetPagesByChapterID(ctx context.Context, chapterID 
 	const op = richerror.Op("postgres.chapter.GetPagesByChapterID")
 
 	query := `
-		SELECT id, chapter_id, page_number, image_url, created_at
+		SELECT id, chapter_id, page_number, image_url, remote_path, created_at
 		FROM chapter_pages
 		WHERE chapter_id = $1
 		ORDER BY page_number ASC
@@ -34,6 +34,7 @@ func (r *PostgresRepository) GetPagesByChapterID(ctx context.Context, chapterID 
 			&p.ChapterID,
 			&p.PageNumber,
 			&p.ImageURL,
+			&p.RemotePath,
 			&p.CreatedAt,
 		); err != nil {
 			return nil, richerror.New(op).WithErr(err)
@@ -50,7 +51,7 @@ func (r *PostgresRepository) GetPageByNumber(ctx context.Context, chapterID uint
 	const op = richerror.Op("postgres.chapter.GetPageByNumber")
 
 	query := `
-		SELECT id, chapter_id, page_number, image_url, created_at
+		SELECT id, chapter_id, page_number, image_url, remote_path, created_at
 		FROM chapter_pages
 		WHERE chapter_id = $1 AND page_number = $2
 	`
@@ -58,11 +59,13 @@ func (r *PostgresRepository) GetPageByNumber(ctx context.Context, chapterID uint
 	var p entity.ChapterPage
 
 	err := r.db.QueryRowContext(ctx, query, chapterID, pageNumber).
-		Scan(&p.ID, &p.ChapterID, &p.PageNumber, &p.ImageURL, &p.CreatedAt)
+		Scan(&p.ID, &p.ChapterID, &p.PageNumber, &p.ImageURL, &p.RemotePath, &p.CreatedAt)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, richerror.New(op).WithErr(err)
+			return nil, richerror.New(op).
+				WithErr(err).
+				WithKind(richerror.KindNotFound)
 		}
 		return nil, richerror.New(op).WithErr(err)
 	}
@@ -70,6 +73,32 @@ func (r *PostgresRepository) GetPageByNumber(ctx context.Context, chapterID uint
 	return &p, nil
 }
 
+
+func (r *PostgresRepository) GetPageByID(ctx context.Context, pageID uint) (*entity.ChapterPage, error) {
+	const op = richerror.Op("postgres.chapter.GetPageByID")
+
+	query := `
+		SELECT id, chapter_id, page_number, image_url, remote_path, created_at
+		FROM chapter_pages
+		WHERE id = $1
+	`
+
+	var p entity.ChapterPage
+
+	err := r.db.QueryRowContext(ctx, query, pageID).
+		Scan(&p.ID, &p.ChapterID, &p.PageNumber, &p.ImageURL, &p.RemotePath, &p.CreatedAt)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, richerror.New(op).
+				WithErr(err).
+				WithKind(richerror.KindNotFound)
+		}
+		return nil, richerror.New(op).WithErr(err)
+	}
+
+	return &p, nil
+}
 
 func (r *PostgresRepository) GetChapterWithPages(ctx context.Context, chapterID uint) (*entity.Chapter, []entity.ChapterPage, error) {
 	const op = richerror.Op("postgres.chapter.GetChapterWithPages")

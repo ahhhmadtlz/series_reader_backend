@@ -8,35 +8,52 @@ import (
 
 func (h Handler) SetRoutes(e *echo.Echo, authService auth.Service, authConfig auth.Config) {
 	
+	// Public routes
 	publicGroup := e.Group("/series")
 	publicGroup.GET("/:series_slug/chapters", h.getList)
 	publicGroup.GET("/:series_slug/chapter/:chapter_number", h.get)
 	publicGroup.GET("/:series_slug/chapter/:chapter_number/read", h.read)
-	publicGroup.GET("/:series_slug/chapter/:chapter_number/pages", h.getPages)
 
 
-	protectedGroup:=e.Group("/series")
+ // Protected routes
+	protectedGroup := e.Group("/chapters")
 	protectedGroup.Use(middleware.Auth(authService, authConfig))
 	protectedGroup.Use(middleware.UserContext())
 
 
-	protectedGroup.POST("/series/:series_slug/chapters",
-	 h.create,
-	 middleware.RequireManagerOrAdmin(),
+	// Page read
+	protectedGroup.GET("/:id/pages", h.getPages)
+
+	// Page write — manager or admin
+	protectedGroup.POST("/:id/pages",
+		h.uploadPage,
+		middleware.RequireManagerOrAdmin(),
+	)
+	protectedGroup.POST("/:id/pages/bulk",
+		h.bulkUploadPages,
+		middleware.RequireManagerOrAdmin(),
+	)
+	protectedGroup.PATCH("/:id/pages/reorder",
+		h.reorderPages,
+		middleware.RequireManagerOrAdmin(),
+	)
+	protectedGroup.DELETE("/:id/pages/:page_number",
+		h.deletePage,
+		middleware.RequireManagerOrAdmin(),
 	)
 
-	protectedGroup.DELETE("/series/:series_slug/chapter/:chapter_number",
-	 h.delete,
-	 middleware.RequireAdmin(),
-	)
-	
-	protectedGroup.POST("/series/:series_slug/chapter/:chapter_number/pages",
-	 h.addPages,
-	 middleware.RequireManagerOrAdmin(),
-	)
 
-	e.DELETE("/series/:series_slug/chapter/:chapter_number/page/:page_number",
-	 h.deletePage,
-	 middleware.RequireAdmin(),
+	// Chapter write
+	protectedGroup2 := e.Group("/series")
+	protectedGroup2.Use(middleware.Auth(authService, authConfig))
+	protectedGroup2.Use(middleware.UserContext())
+
+	protectedGroup2.POST("/:series_slug/chapters",
+		h.create,
+		middleware.RequireManagerOrAdmin(),
+	)
+	protectedGroup2.DELETE("/:series_slug/chapter/:chapter_number",
+		h.delete,
+		middleware.RequireAdmin(),
 	)
 }

@@ -32,7 +32,7 @@ type UploadCoverResponse struct {
 }
 
 // ============================================
-// Upload Chapter Page (TBD - scaffolded)
+// Upload Chapter Page 
 // ============================================
 
 type UploadChapterPageRequest struct {
@@ -47,3 +47,4 @@ type UploadChapterPageResponse struct {
 	PageImageURL string `json:"page_image_url"`
 	PageNumber   int    `json:"page_number"`
 }
+

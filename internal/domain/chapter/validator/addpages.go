@@ -1,94 +1,161 @@
 package validator
-
 import (
 	"context"
 	"fmt"
+	"mime/multipart"
+	"path/filepath"
+	"strings"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/param"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/pkg/richerror"
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-func (v Validator) ValidateAddChapterPagesRequest(
-	ctx context.Context,
-	req param.AddChapterPagesRequest,
-) error {
 
-	const op richerror.Op = "Validator.ValidateAddChapterPagesRequest"
+func (v Validator) ValidateUploadPage(ctx context.Context, req param.UploadPageParam) error {
 
-	err := validation.ValidateStruct(
-		&req,
-		validation.Field(
-			&req.ChapterID,
-			validation.Required.Error("chapter_id is required"),
-			validation.Min(uint(1)).Error("chapter_id must be greater than 0"),
-		),
-		validation.Field(
-			&req.Pages,
-			validation.Required.Error("pages is required"),
-			validation.Length(1, 0).Error("at least one page is required"),
-		),
-	)
+	const op = richerror.Op("validator.chapter.ValidateUploadPage")
 
-	if err != nil {
-		if validationErrors, ok := err.(validation.Errors); ok {
-			fieldErrors := make(map[string]any, len(validationErrors))
-			for field, err := range validationErrors {
-				fieldErrors[field] = err.Error()
-			}
+	fieldErrors := make(map[string]string)
 
-			return richerror.New(op).
-				WithKind(richerror.KindInvalid).
-				WithMessage("validation failed").
-				WithMetaMap(fieldErrors)
-		}
-
-		return richerror.Wrap(err, op).
-			WithKind(richerror.KindUnexpected).
-			WithMessage("unexpected validation error")
+	if req.ChapterID == 0 {
+		fieldErrors["chapter_id"] = "chapter ID is required"
 	}
 
-	// Validate each page
-	fieldErrors := make(map[string]any)
+	if req.PageNumber < 0 {
+		fieldErrors["page_number"] = "page number must be non-negative"
+	}
 
-	for i, page := range req.Pages {
-		if err := validatePageItem(page, i); err != nil {
-
-			if validationErrors, ok := err.(validation.Errors); ok {
-				for field, err := range validationErrors {
-					key := fmt.Sprintf("pages[%d].%s", i, field)
-					fieldErrors[key] = err.Error()
-				}
-				continue
-			}
-
-			return richerror.Wrap(err, op).
-				WithKind(richerror.KindUnexpected).
-				WithMessage("unexpected page validation error")
+	if req.Header == nil {
+		fieldErrors["file"] = "file is required"
+	} else {
+		if err := validatePageFile(req.Header, v.uploadConfig.MaxPageSizeMB, v.uploadConfig.AllowedMimeTypes); err != nil {
+			fieldErrors["file"] = err.Error()
 		}
 	}
 
 	if len(fieldErrors) > 0 {
 		return richerror.New(op).
-			WithKind(richerror.KindInvalid).
 			WithMessage("validation failed").
-			WithMetaMap(fieldErrors)
+			WithKind(richerror.KindInvalid).
+			WithMetaMap(toAnyMap(fieldErrors))
 	}
 
 	return nil
 }
 
+func (v Validator) ValidateBulkUpload(ctx context.Context, req param.BulkUploadParam) error {
+	const op = richerror.Op("validator.chapter.ValidateBulkUpload")
 
+	fieldErrors := make(map[string]string)
 
-func validatePageItem(page param.CreateChapterPageItem, _ int) error {
-	return validation.ValidateStruct(&page,
-		validation.Field(&page.PageNumber,
-			validation.Required.Error("page_number is required"),
-			validation.Min(1).Error("page_number must be greater than 0"),
-		),
-		validation.Field(&page.ImageURL,
-			validation.Required.Error("image_url is required"),
-			validation.NotNil.Error("image_url cannot be empty"),
-		),
-	)
+	if req.ChapterID == 0 {
+		fieldErrors["chapter_id"] = "chapter ID is required"
+	}
+
+	if len(req.Files) == 0 {
+		fieldErrors["files"] = "at least one file is required"
+	}
+
+	for i, fh := range req.Files {
+		if err := validatePageFile(fh, v.uploadConfig.MaxPageSizeMB, v.uploadConfig.AllowedMimeTypes); err != nil {
+			fieldErrors[fmt.Sprintf("files[%d]", i)] = err.Error()
+		}
+	}
+
+	if len(fieldErrors) > 0 {
+		return richerror.New(op).
+			WithMessage("validation failed").
+			WithKind(richerror.KindInvalid).
+			WithMetaMap(toAnyMap(fieldErrors))
+	}
+
+	return nil
+}
+
+func (v Validator) ValidateReorderPages(ctx context.Context, req param.ReorderPagesParam) error {
+	const op = richerror.Op("validator.chapter.ValidateReorderPages")
+
+	fieldErrors := make(map[string]string)
+
+	if req.ChapterID == 0 {
+		fieldErrors["chapter_id"] = "chapter ID is required"
+	}
+
+	if len(req.Pages) == 0 {
+		fieldErrors["pages"] = "at least one page is required"
+	}
+
+	// Check for duplicate page numbers
+	seen := make(map[int]bool)
+	for i, p := range req.Pages {
+		if p.PageID == 0 {
+			fieldErrors[fmt.Sprintf("pages[%d].page_id", i)] = "page ID is required"
+		}
+		if p.PageNumber < 0 {
+			fieldErrors[fmt.Sprintf("pages[%d].page_number", i)] = "page number must be non-negative"
+		}
+		if seen[p.PageNumber] {
+			fieldErrors[fmt.Sprintf("pages[%d].page_number", i)] = "duplicate page number"
+		}
+		seen[p.PageNumber] = true
+	}
+
+	if len(fieldErrors) > 0 {
+		return richerror.New(op).
+			WithMessage("validation failed").
+			WithKind(richerror.KindInvalid).
+			WithMetaMap(toAnyMap(fieldErrors))
+	}
+
+	return nil
+}
+
+// ============================================
+// Helpers
+// ============================================
+
+func validatePageFile(header *multipart.FileHeader, maxSizeMB int, allowedMimeTypes []string) error {
+	if header.Size == 0 {
+		return fmt.Errorf("file is empty")
+	}
+
+	maxSizeBytes := int64(maxSizeMB) * 1024 * 1024
+	if header.Size > maxSizeBytes {
+		return fmt.Errorf("file size exceeds %dMB limit", maxSizeMB)
+	}
+
+	mimeType := strings.ToLower(strings.TrimSpace(header.Header.Get("Content-Type")))
+	allowed := false
+	for _, m := range allowedMimeTypes {
+		if strings.ToLower(m) == mimeType {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return fmt.Errorf("invalid file type: %s", mimeType)
+	}
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowedExts := []string{".jpg", ".jpeg", ".png", ".webp", ".gif"}
+	extAllowed := false
+	for _, e := range allowedExts {
+		if e == ext {
+			extAllowed = true
+			break
+		}
+	}
+	if !extAllowed {
+		return fmt.Errorf("invalid file extension: %s", ext)
+	}
+
+	return nil
+}
+
+func toAnyMap(m map[string]string) map[string]any {
+	result := make(map[string]any, len(m))
+	for k, v := range m {
+		result[k] = v
+	}
+	return result
 }

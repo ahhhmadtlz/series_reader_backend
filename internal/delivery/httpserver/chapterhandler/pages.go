@@ -9,104 +9,130 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (h Handler) addPages(c echo.Context)error {
-	seriesSlug:=c.Param("series_slug")
-	chapterNumStr:=c.Param("chapter_number")
+//uploadPage handles POST /chapters/:id/pages
 
-	chapterNum,err:=strconv.ParseFloat(chapterNumStr,64)
+func (h Handler) uploadPage(c echo.Context) error {
+	chapterID, err:=parseID(c,"id")
 	if err !=nil{
 		return c.JSON(http.StatusBadRequest,httpmsgerrorhandler.ErrorResponse{
-			Message: "invalid chapter number",
+			Message: "invalid chapter ID",
 		})
 	}
 
-	series,err:=h.seriesService.GetByFullSlug(c.Request().Context(),seriesSlug)
-	if err !=nil{
-		return httpmsgerrorhandler.Error(c,err)
-	}
+	pageNumberStr :=c.FormValue("page_number")
+	pageNumber,err :=strconv.Atoi(pageNumberStr)
 
-
-	chapters, err:=h.chapterService.GetBySeriesID(c.Request().Context(),series.ID)
-	if err!=nil{
-		return httpmsgerrorhandler.Error(c,err)
-	}
-
-	var chapterID uint
-  for _,ch:=range chapters {
-		if ch.ChapterNumber==chapterNum {
-			chapterID =ch.ID
-			break
-		}
-	}
-
-	if chapterID ==0 {
-		return c.JSON(http.StatusNotFound,httpmsgerrorhandler.ErrorResponse{
-			Message: "chapter not found",
+	if err !=nil {
+		return c.JSON(http.StatusBadRequest,httpmsgerrorhandler.ErrorResponse{
+			Message: "invalid page number",
 		})
 	}
 
-	var req param.AddChapterPagesRequest
-
-	if err:=c.Bind(&req);err!=nil{
+	file,header,err :=c.Request().FormFile("page")
+	if err !=nil{
 		return c.JSON(http.StatusBadRequest,httpmsgerrorhandler.ErrorResponse{
+			Message: "failed to read page file",
+		})
+	}
+	defer file.Close()
+
+	req:=param.UploadPageParam{
+		ChapterID: chapterID,
+		PageNumber: pageNumber,
+		File: file,
+		Header: header,
+	}
+	if err := h.chapterValidator.ValidateUploadPage(c.Request().Context(), req); err != nil {
+		return httpmsgerrorhandler.Error(c, err)
+	}
+
+	response, err := h.chapterService.UploadPage(c.Request().Context(), req)
+	if err != nil {
+		return httpmsgerrorhandler.Error(c, err)
+	}
+
+	return c.JSON(http.StatusCreated, response)
+
+}
+
+// bulkUploadPages handles POST /chapters/:id/pages/bulk
+func (h Handler) bulkUploadPages(c echo.Context) error {
+	chapterID, err := parseID(c, "id")
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
+			Message: "invalid chapter ID",
+		})
+	}
+
+	form, err := c.MultipartForm()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
+			Message: "failed to parse multipart form",
+		})
+	}
+
+	files := form.File["pages"]
+
+	req := param.BulkUploadParam{
+		ChapterID: chapterID,
+		Files:     files,
+	}
+
+	if err := h.chapterValidator.ValidateBulkUpload(c.Request().Context(), req); err != nil {
+		return httpmsgerrorhandler.Error(c, err)
+	}
+
+	responses, err := h.chapterService.BulkUploadPages(c.Request().Context(), req)
+	if err != nil {
+		return httpmsgerrorhandler.Error(c, err)
+	}
+
+	return c.JSON(http.StatusCreated, echo.Map{
+		"message": "pages uploaded successfully",
+		"pages":   responses,
+	})
+}
+
+// reorderPages handles PATCH /chapters/:id/pages/reorder
+func (h Handler) reorderPages(c echo.Context) error {
+	chapterID, err := parseID(c, "id")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
+			Message: "invalid chapter ID",
+		})
+	}
+
+	var req param.ReorderPagesParam
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
 			Message: "invalid request body",
 		})
 	}
-	req.ChapterID=chapterID
+	req.ChapterID = chapterID
 
-	if err := h.chapterValidator.ValidateAddChapterPagesRequest(c.Request().Context(), req); err != nil {
+	if err := h.chapterValidator.ValidateReorderPages(c.Request().Context(), req); err != nil {
 		return httpmsgerrorhandler.Error(c, err)
- }
+	}
 
- if err:=h.chapterService.AddPages(c.Request().Context(),req); err !=nil{
-	return httpmsgerrorhandler.Error(c,err)
- }
+	if err := h.chapterService.ReorderPages(c.Request().Context(), req); err != nil {
+		return httpmsgerrorhandler.Error(c, err)
+	}
 
- return c.JSON(http.StatusCreated,echo.Map{
-	"message":"page added succesfully",
- })
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "pages reordered successfully",
+	})
 }
 
+// getPages handles GET /chapters/:id/pages
 func (h Handler) getPages(c echo.Context) error {
-	seriesSlug := c.Param("series_slug")
-	chapterNumStr := c.Param("chapter_number")
-
-	// Parse chapter number
-	chapterNum, err := strconv.ParseFloat(chapterNumStr, 64)
+	chapterID, err := parseID(c, "id")
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
-			Message: "invalid chapter number",
+			Message: "invalid chapter ID",
 		})
 	}
 
-	// Get series by full_slug
-	series, err := h.seriesService.GetByFullSlug(c.Request().Context(), seriesSlug)
-	if err != nil {
-		return httpmsgerrorhandler.Error(c, err)
-	}
-
-	// Get all chapters for series to find the chapter ID
-	chapters, err := h.chapterService.GetBySeriesID(c.Request().Context(), series.ID)
-	if err != nil {
-		return httpmsgerrorhandler.Error(c, err)
-	}
-
-	// Find chapter by number
-	var chapterID uint
-	for _, ch := range chapters {
-		if ch.ChapterNumber == chapterNum {
-			chapterID = ch.ID
-			break
-		}
-	}
-
-	if chapterID == 0 {
-		return c.JSON(http.StatusNotFound, httpmsgerrorhandler.ErrorResponse{
-			Message: "chapter not found",
-		})
-	}
-
-	// Get pages
 	pages, err := h.chapterService.GetPages(c.Request().Context(), chapterID)
 	if err != nil {
 		return httpmsgerrorhandler.Error(c, err)
@@ -115,67 +141,34 @@ func (h Handler) getPages(c echo.Context) error {
 	return c.JSON(http.StatusOK, pages)
 }
 
-
-
+// deletePage handles DELETE /chapters/:id/pages/:page_number
 func (h Handler) deletePage(c echo.Context) error {
-	seriesSlug := c.Param("series_slug")
-	chapterNumStr := c.Param("chapter_number")
-	pageNumStr := c.Param("page_number")
-
-	// Parse chapter number
-	chapterNum, err := strconv.ParseFloat(chapterNumStr, 64)
+	chapterID, err := parseID(c, "id")
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
-			Message: "invalid chapter number",
+			Message: "invalid chapter ID",
 		})
 	}
 
-	// Parse page number
-	pageNum, err := strconv.Atoi(pageNumStr)
+	pageNumber, err := strconv.Atoi(c.Param("page_number"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
 			Message: "invalid page number",
 		})
 	}
 
-	// Get series by full_slug
-	series, err := h.seriesService.GetByFullSlug(c.Request().Context(), seriesSlug)
-	if err != nil {
-		return httpmsgerrorhandler.Error(c, err)
-	}
-
-	// Get all chapters for series to find the chapter ID
-	chapters, err := h.chapterService.GetBySeriesID(c.Request().Context(), series.ID)
-	if err != nil {
-		return httpmsgerrorhandler.Error(c, err)
-	}
-
-	// Find chapter by number
-	var chapterID uint
-	for _, ch := range chapters {
-		if ch.ChapterNumber == chapterNum {
-			chapterID = ch.ID
-			break
-		}
-	}
-
-	if chapterID == 0 {
-		return c.JSON(http.StatusNotFound, httpmsgerrorhandler.ErrorResponse{
-			Message: "chapter not found",
-		})
-	}
-
-	// Get the specific page to get its ID
-	page, err := h.chapterService.GetPageByNumber(c.Request().Context(), chapterID, pageNum)
-	if err != nil {
-		return httpmsgerrorhandler.Error(c, err)
-	}
-
-	// Delete the page
-	err = h.chapterService.DeletePage(c.Request().Context(), page.ID)
-	if err != nil {
+	if err := h.chapterService.DeletePage(c.Request().Context(), chapterID, pageNumber); err != nil {
 		return httpmsgerrorhandler.Error(c, err)
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+// parseID is a helper to parse uint path params
+func parseID(c echo.Context, paramName string) (uint, error) {
+	val, err := strconv.ParseUint(c.Param(paramName), 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return uint(val), nil
 }

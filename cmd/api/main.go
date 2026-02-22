@@ -151,11 +151,22 @@ func setupServices(db *postgres.DB, cfg *config.Config) (
 	uploadservice.Service,         
 	uploadvalidator.Validator,     
 ) {
-// ========================================
+
+  // ========================================
+	// Storage Setup
+	// ========================================
+	localStorage := local.New(cfg.Upload.BasePath, cfg.Upload.BaseURL)
+	logger.Info("Local storage initialized",
+			"base_path", cfg.Upload.BasePath,
+			"base_url", cfg.Upload.BaseURL,
+	)
+
+	// ========================================
 	// Auth Setup (needed by user service)
 	// ========================================
 	authService := auth.New(cfg.Auth)
 	logger.Info("Auth service initialized")
+
 
 	// ========================================
 	// Series Setup
@@ -175,10 +186,10 @@ func setupServices(db *postgres.DB, cfg *config.Config) (
 	chapterRepository := chapterrepo.New(db.Conn())
 	logger.Info("Chapter repository initialized")
 
-	chapterValidator := chaptervalidator.New()
+  chapterValidator := chaptervalidator.New(cfg.Upload)
 	logger.Info("Chapter validator initialized")
 
-	chapterService := chapterservice.New(chapterRepository)
+  chapterService := chapterservice.New(chapterRepository, localStorage)
 	logger.Info("Chapter service initialized")
 
 	// ========================================
@@ -226,21 +237,11 @@ func setupServices(db *postgres.DB, cfg *config.Config) (
 	logger.Info("Upload repository initialized")
 	
 
-	localStorage := local.New(cfg.Upload.BasePath, cfg.Upload.BaseURL)
-	logger.Info("Local storage initialized",
-		"base_path", cfg.Upload.BasePath,
-		"base_url", cfg.Upload.BaseURL,
-	)
 
 	uploadValidator := uploadvalidator.New(cfg.Upload)
 	logger.Info("Upload validator initialized")
 
-	uploadService := uploadservice.New(
-		uploadRepository,
-		userRepository,
-		seriesRepository,
-		localStorage,
-	)
+  uploadService := uploadservice.New(uploadRepository, userRepository, seriesRepository, localStorage)
 	logger.Info("Upload service initialized")
 
 	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator, bookmarkService, bookmarkValidator, readingHistoryService, readingHistoryValidator, uploadService, uploadValidator

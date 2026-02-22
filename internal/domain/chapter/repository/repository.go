@@ -18,9 +18,10 @@ type Repository interface {
 	CreatePages(ctx context.Context,pages []entity.ChapterPage)error
 	GetPagesByChapterID(ctx context.Context, chapterID uint)([]entity.ChapterPage,error)
 	GetPageByNumber(ctx context.Context,chapterID uint ,pageNumber int)(*entity.ChapterPage,error)
+	GetPageByID(ctx context.Context, pageID uint) (*entity.ChapterPage, error)
 	DeletePage(ctx context.Context,pageID uint)error
+	UpdatePageNumbers(ctx context.Context, updates []entity.PageNumberUpdate) error 
 
-	//Optimized combined query
 	GetChapterWithPages(ctx context.Context,chapterID uint)(*entity.Chapter,[]entity.ChapterPage,error)
 
 }
