@@ -14,6 +14,7 @@ func (h Handler) SetRoutes(e *echo.Echo, authService auth.Service, authConfig au
 
 	protectedGroup := e.Group("/series")
 	protectedGroup.Use(middleware.Auth(authService,authConfig))
+	protectedGroup.Use(middleware.UserContext())
 	
 	protectedGroup.POST("", h.create,middleware.RequireManagerOrAdmin())
 	protectedGroup.PUT("/:id",h.update,middleware.RequireManagerOrAdmin())
