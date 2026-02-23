@@ -84,24 +84,26 @@ func (s Service) BulkUploadPages(ctx context.Context,req param.BulkUploadParam) 
 	}
 	//4. save all records in one DB call (uses transaction in repo)
 
-	if err :=s.repo.CreatePages(ctx,pages);err!=nil{
-		for _,path:=range storedPaths {
-			_=s.storage.Delete(ctx,path)
-		}
-		return nil,richerror.New(op).
-		  WithMessage("failed to save pages to database").
-			WithKind(richerror.KindUnexpected)
-	}
+created, err := s.repo.CreatePages(ctx, pages)
+if err != nil {
+    for _, path := range storedPaths {
+        _ = s.storage.Delete(ctx, path)
+    }
+    return nil, richerror.New(op).
+        WithMessage("failed to save pages to database").
+        WithKind(richerror.KindUnexpected)
+}
 
 	logger.Info("bulk pages uploaded","chapter_id",req.ChapterID,"count",len(pages))
 
-	responses :=make([]param.ChapterPageResponse,len(pages))
-	for i ,p :=range pages{
-		responses[i]=param.ChapterPageResponse{
-			PageNumber: p.PageNumber,
-			ImageURL: p.ImageURL,
-		}
-	}
+responses := make([]param.ChapterPageResponse, len(created))
+for i, p := range created {
+    responses[i] = param.ChapterPageResponse{
+        ID:         p.ID,
+        PageNumber: p.PageNumber,
+        ImageURL:   p.ImageURL,
+    }
+}
 
 	return responses,nil
 

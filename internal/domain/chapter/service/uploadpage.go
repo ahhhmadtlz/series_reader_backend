@@ -56,7 +56,7 @@ func (s Service) UploadPage(ctx context.Context, req param.UploadPageParam) (par
 		},
 	}
 
-	if err := s.repo.CreatePages(ctx, pages); err != nil {
+	if _,err := s.repo.CreatePages(ctx, pages); err != nil {
 		// Rollback: delete file from storage
 		_ = s.storage.Delete(ctx, result.StoredPath)
 		return param.ChapterPageResponse{}, richerror.New(op).

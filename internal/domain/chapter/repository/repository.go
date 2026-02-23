@@ -15,7 +15,7 @@ type Repository interface {
 	Delete(ctx context.Context,id uint)error
 
 	//Page operation
-	CreatePages(ctx context.Context,pages []entity.ChapterPage)error
+	CreatePages(ctx context.Context, pages []entity.ChapterPage) ([]entity.ChapterPage, error)
 	GetPagesByChapterID(ctx context.Context, chapterID uint)([]entity.ChapterPage,error)
 	GetPageByNumber(ctx context.Context,chapterID uint ,pageNumber int)(*entity.ChapterPage,error)
 	GetPageByID(ctx context.Context, pageID uint) (*entity.ChapterPage, error)
