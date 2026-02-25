@@ -45,11 +45,32 @@ func (l *LocalStorage) Save(ctx context.Context, req storage.SaveRequest)(storag
 	var relativePath string
 	switch req.Kind {
 		case entity.ImageKindAvatar :
-				relativePath =fmt.Sprintf("avatars/%d/%s",req.OwnerID,filename)
+				relativePath =fmt.Sprintf("images/avatars/%d/%s",req.OwnerID,filename)
 		case entity.ImageKindCover:
-			relativePath=fmt.Sprintf("covers/%d/%s",req.OwnerID,filename)
+			  if strings.Contains(req.Filename,"/"){
+					relativePath=fmt.Sprintf("images/covers/%d/%s",req.OwnerID,req.Filename)
+				}else{
+					relativePath=fmt.Sprintf("images/covers/%d/%s",req.OwnerID,filename)
+				}
 		case entity.ImageKindChapterPage:
-			relativePath = fmt.Sprintf("chapters/%d/%s", req.OwnerID, filename)
+				if strings.Contains(req.Filename, "/") {
+						relativePath = fmt.Sprintf("images/chapters/%d/%s", req.OwnerID, req.Filename)
+				} else {
+						relativePath = fmt.Sprintf("images/chapters/%d/%s", req.OwnerID, filename)
+				}
+		case entity.ImageKindBanner:
+				if strings.Contains(req.Filename, "/") {
+						relativePath = fmt.Sprintf("images/banners/%d/%s", req.OwnerID, req.Filename)
+				} else {
+						relativePath = fmt.Sprintf("images/banners/%d/%s", req.OwnerID, filename)
+				}
+		case entity.ImageKindChapterThumbnail:
+				if strings.Contains(req.Filename, "/") {
+						relativePath = fmt.Sprintf("images/thumbnails/%d/%s", req.OwnerID, req.Filename)
+				} else {
+						relativePath = fmt.Sprintf("images/thumbnails/%d/%s", req.OwnerID, filename)
+				}
+			   
 		default:
 			return storage.SaveResult{}, richerror.New(op).
 				WithMessage("invalid image kind").
@@ -65,7 +86,7 @@ func (l *LocalStorage) Save(ctx context.Context, req storage.SaveRequest)(storag
 			WithKind(richerror.KindUnexpected)
 	}
 
-	file, err := os.OpenFile(fullPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(fullPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return storage.SaveResult{}, richerror.New(op).
 			WithErr(err).

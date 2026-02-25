@@ -3,22 +3,47 @@ package service
 import (
 	"time"
 
+	chapterrepo "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/repository"
+	iprepo "github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/repository"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/entity"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/param"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/repository"
+	uploadrepository "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/repository"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/infrastructure/storage"
 )
 
-
 type Service struct {
-	repo repository.Repository
+	repo           repository.Repository
+	storage        storage.Storage
+	uploadRepo     uploadrepository.Repository
+	chapterRepo    chapterrepo.Repository
+	imageVariantRepo iprepo.Repository
+	coverRepo      iprepo.CoverVariantRepository
+	bannerRepo     iprepo.BannerVariantRepository
+	thumbnailRepo  iprepo.ChapterThumbnailRepository
 }
 
-func New(repo repository.Repository) Service {
+func New(
+	repo repository.Repository,
+	storage storage.Storage,
+	uploadRepo uploadrepository.Repository,
+	chapterRepo chapterrepo.Repository,
+	imageVariantRepo iprepo.Repository,
+	coverRepo iprepo.CoverVariantRepository,
+	bannerRepo iprepo.BannerVariantRepository,
+	thumbnailRepo iprepo.ChapterThumbnailRepository,
+) Service {
 	return Service{
-		repo: repo,
+		repo:             repo,
+		storage:          storage,
+		uploadRepo:       uploadRepo,
+		chapterRepo:      chapterRepo,
+		imageVariantRepo: imageVariantRepo,
+		coverRepo:        coverRepo,
+		bannerRepo:       bannerRepo,
+		thumbnailRepo:    thumbnailRepo,
 	}
 }
-
 
 func toSeriesResponse(series entity.Series) param.SeriesResponse {
 	var createdAt, updatedAt string
@@ -35,8 +60,8 @@ func toSeriesResponse(series entity.Series) param.SeriesResponse {
 		ID:                series.ID,
 		Title:             series.Title,
 		Slug:              series.Slug,
-	  SlugID:            series.SlugID,   
-    FullSlug:          series.FullSlug, 
+		SlugID:            series.SlugID,
+		FullSlug:          series.FullSlug,
 		Description:       series.Description,
 		Author:            series.Author,
 		Artist:            series.Artist,
