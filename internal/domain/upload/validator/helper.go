@@ -15,7 +15,7 @@ func isAllowedMimeType(mimeType string, allowedTypes []string) bool {
 			return  true
 		}
 	}
-	return  true
+	return  false
 }
 
 func isAllowedExtension(ext string) bool {

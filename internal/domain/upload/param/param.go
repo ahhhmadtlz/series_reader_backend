@@ -48,3 +48,33 @@ type UploadChapterPageResponse struct {
 	PageNumber   int    `json:"page_number"`
 }
 
+
+// ============================================
+// Upload Series Banner
+// ============================================
+
+type UploadBannerRequest struct {
+	SeriesID uint
+	UserID   uint
+	File     multipart.File
+	Header   *multipart.FileHeader
+}
+
+type UploadBannerResponse struct {
+	BannerImageURL string `json:"banner_image_url"`
+}
+
+// ============================================
+// Upload Chapter Thumbnail
+// ============================================
+
+type UploadChapterThumbnailRequest struct {
+	ChapterID uint
+	UserID    uint
+	File      multipart.File
+	Header    *multipart.FileHeader
+}
+
+type UploadChapterThumbnailResponse struct {
+	ThumbnailURL string `json:"thumbnail_url"`
+}

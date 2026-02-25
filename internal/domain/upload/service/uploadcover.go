@@ -3,12 +3,14 @@ package service
 import (
 	"context"
 
+	ipparam "github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/param"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/entity"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/param"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/infrastructure/storage"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/pkg/richerror"
 )
+
 
 func (s Service) UploadCover(ctx context.Context, req param.UploadCoverRequest) (param.UploadCoverResponse, error) {
 	const op = richerror.Op("service.upload.UploadCover")
@@ -146,7 +148,25 @@ func (s Service) UploadCover(ctx context.Context, req param.UploadCoverRequest) 
 		"cover_url", savedImg.URL,
 	)
 
+	logger.Info("Cover uploaded successfully",
+		"series_id", req.SeriesID,
+		"cover_url", savedImg.URL,
+	)
+
+	// 6. Enqueue image processing job (fire and forget)
+	if err := s.jobQueue.Enqueue(ctx, ipparam.ProcessImageArgs{
+		OwnerID:    req.SeriesID,
+		RemotePath: savedImg.StoredPath,
+		ImageKind:  entity.ImageKindCover,
+	}); err != nil {
+		logger.Error("failed to enqueue cover processing job",
+			"series_id", req.SeriesID,
+			"error", err,
+		)
+	}
+
 	return param.UploadCoverResponse{
 		CoverImageURL: savedImg.URL,
 	}, nil
 }
+

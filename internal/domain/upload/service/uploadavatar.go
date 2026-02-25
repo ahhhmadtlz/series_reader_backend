@@ -44,25 +44,23 @@ func (s Service) UploadAvatar(ctx context.Context, req param.UploadAvatarRequest
 	// 2. Delete old avatar if exists (best effort)
 	oldAvatar, err := s.uploadRepo.GetLatestByOwner(ctx, req.UserID, entity.ImageKindAvatar)
 	if err == nil {
-		// Old avatar exists, delete it
-		logger.Info("Deleting old avatar",
-			"user_id", req.UserID,
-			"old_avatar_id", oldAvatar.ID,
-			"old_path", oldAvatar.StoredPath,
-		)
-
-		// Delete from DB first
-		_ = s.uploadRepo.DeleteByID(ctx, oldAvatar.ID)
-
-		// Delete from storage (best effort, log if fails)
-		if err := s.storage.Delete(ctx, oldAvatar.StoredPath); err != nil {
-			logger.Error("Failed to delete old avatar file",
-				"user_id", req.UserID,
-				"stored_path", oldAvatar.StoredPath,
-				"error", err.Error(),
+			logger.Info("Deleting old avatar",
+					"user_id", req.UserID,
+					"old_avatar_id", oldAvatar.ID,
+					"old_path", oldAvatar.StoredPath,
 			)
-			// Don't fail the upload if old file deletion fails
-		}
+
+			// Delete file first — if this fails, keep DB row so we can retry later
+			if err := s.storage.Delete(ctx, oldAvatar.StoredPath); err != nil {
+					logger.Error("Failed to delete old avatar file, skipping DB cleanup",
+							"user_id", req.UserID,
+							"stored_path", oldAvatar.StoredPath,
+							"error", err.Error(),
+					)
+			} else {
+					// File gone — now safe to remove DB row
+					_ = s.uploadRepo.DeleteByID(ctx, oldAvatar.ID)
+			}
 	}
 
 	saveReq := storage.SaveRequest{
