@@ -12,6 +12,7 @@ const (
 	KindForbidden
 	KindNotFound
 	KindUnexpected
+	KindConflict
 )
 
 func (k Kind) String() string {
@@ -24,6 +25,8 @@ func (k Kind) String() string {
 		return "NotFound"
 	case KindUnexpected:
 		return "Unexpected"
+	case KindConflict:
+		return "Conflict"
 	default:
 		return "Unknown"
 	}
@@ -45,28 +48,28 @@ func New(op Op) *RichError {
 	_, file, line, _ := runtime.Caller(1)
 	return &RichError{
 		Operation: op,
-		file:file,
-		line:line,
+		file:      file,
+		line:      line,
 	}
 }
 
 // Wrap wraps an existing error with operation context
-func Wrap(err error,op Op)*RichError {
-	if err==nil{
+func Wrap(err error, op Op) *RichError {
+	if err == nil {
 		return nil
 	}
-	_,file,line,_:=runtime.Caller(1)
+	_, file, line, _ := runtime.Caller(1)
 	return &RichError{
 		Operation: op,
-		Err:err,
-		file:file,
-		line:line,
+		Err:       err,
+		file:      file,
+		line:      line,
 	}
 }
 
-// Builder methods - now return *RichError for efficiency
-func (r *RichError) WithOp(op Op) *RichError{
-	r.Operation=op
+// Builder methods
+func (r *RichError) WithOp(op Op) *RichError {
+	r.Operation = op
 	return r
 }
 
@@ -80,16 +83,16 @@ func (r *RichError) WithKind(kind Kind) *RichError {
 	return r
 }
 
-func (r *RichError)WithMeta(key string ,value any)*RichError{
-	if r.Meta==nil{
-		r.Meta=make(map[string]any)
+func (r *RichError) WithMeta(key string, value any) *RichError {
+	if r.Meta == nil {
+		r.Meta = make(map[string]any)
 	}
-	r.Meta[key]=value
+	r.Meta[key] = value
 	return r
 }
 
-func ( r *RichError)WithMetaMap(meta map[string]any)*RichError{
-	r.Meta=meta
+func (r *RichError) WithMetaMap(meta map[string]any) *RichError {
+	r.Meta = meta
 	return r
 }
 
@@ -98,35 +101,31 @@ func (r *RichError) WithErr(err error) *RichError {
 	return r
 }
 
-
 // Error implements the error interface
-
-func (r *RichError) Error()string {
-	if r.Message != ""{
-		if r.Err!=nil{
-			return fmt.Sprintf("%s:%v",r.Message,r.Err)
+func (r *RichError) Error() string {
+	if r.Message != "" {
+		if r.Err != nil {
+			return fmt.Sprintf("%s:%v", r.Message, r.Err)
 		}
-		return  r.Message
+		return r.Message
 	}
-	if r.Err!=nil{
+	if r.Err != nil {
 		return r.Err.Error()
 	}
-
-	return fmt.Sprintf("%s:%s",r.Operation,r.Kind)
+	return fmt.Sprintf("%s:%s", r.Operation, r.Kind)
 }
 
 // Unwrap returns the wrapped error (for errors.Is and errors.As)
-func ( r *RichError)Unwrap() error{ 
+func (r *RichError) Unwrap() error {
 	return r.Err
 }
 
 // GetKind returns the kind, unwrapping if necessary
-func (r *RichError)GetKind()Kind{
-	if r.Kind!=0 {
-		return  r.Kind
+func (r *RichError) GetKind() Kind {
+	if r.Kind != 0 {
+		return r.Kind
 	}
-
-	if re,ok:=r.Err.(*RichError);ok{
+	if re, ok := r.Err.(*RichError); ok {
 		return re.GetKind()
 	}
 	return 0
@@ -150,5 +149,3 @@ func (r *RichError) GetMessage() string {
 func (r *RichError) Location() string {
 	return fmt.Sprintf("%s:%d", r.file, r.line)
 }
-
-
