@@ -19,7 +19,27 @@ func (s Service) DeletePage(ctx context.Context, chapterID uint, pageNumber int)
 			WithKind(richerror.KindNotFound)
 	}
 
-	// 2. Delete from DB first
+	//2. fetch variants before deleting the page
+  variants,err:=s.variantRepo.GetVariantsByPageID(ctx,page.ID)
+	if err !=nil{
+		logger.Error("failed to get variants for page","page_id",page.ID,"error",err)
+	}
+
+ //3. delete variant files from disk
+ for _, v:= range variants {
+	 if v.RemotePath !=""{
+		if err :=s.storage.Delete(ctx, v.RemotePath);err !=nil{
+			logger.Error("failed to delete variant file","rempte_path",v.RemotePath,"error",err)
+		}
+	 }
+ }
+
+ //4. delete variant rows from DB
+ if err :=s.variantRepo.DeleteVariantsByPageID(ctx,page.ID); err !=nil{
+	logger.Error("failed to delete variant rows","page_id",page.ID,"error",err)
+ }
+
+	// 6. delete page row from DB
 	if err := s.repo.DeletePage(ctx, page.ID); err != nil {
 		return richerror.New(op).
 			WithErr(err).
