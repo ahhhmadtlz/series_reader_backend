@@ -32,12 +32,14 @@ func Default() Config {
 			SSLMode:  "disable",
 		},
 		Upload: Upload{
-			BasePath:         "./uploads",
-			BaseURL:          "http://localhost:8080/uploads",
-			MaxAvatarSizeMB:  5,
-			MaxCoverSizeMB:   10,
-			MaxPageSizeMB:    15,
-			AllowedMimeTypes: []string{"image/jpeg", "image/jpg", "image/png", "image/webp"},
+			BasePath:           "./uploads",
+			BaseURL:            "http://localhost:8080/uploads",
+			MaxAvatarSizeMB:    5,
+			MaxCoverSizeMB:     10,
+			MaxPageSizeMB:      15,
+			MaxBannerSizeMB:    10,
+			MaxThumbnailSizeMB: 5,
+			AllowedMimeTypes:   []string{"image/jpeg", "image/jpg", "image/png", "image/webp"},
 		},
 	}
 	return cfx

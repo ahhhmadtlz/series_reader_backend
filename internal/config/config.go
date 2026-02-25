@@ -19,12 +19,14 @@ type Postgres struct {
 }
 
 type Upload struct {
-	BasePath string `koanf:"base_path"` 
-	BaseURL  string `koanf:"base_url"`  
-	MaxAvatarSizeMB int `koanf:"max_avatar_size_mb"` // 5
-	MaxCoverSizeMB  int `koanf:"max_cover_size_mb"`  // 10
-	MaxPageSizeMB   int `koanf:"max_page_size_mb"`   // 15
-	AllowedMimeTypes []string `koanf:"allowed_mime_types"` // ["image/jpeg", "image/png", "image/webp"]
+	BasePath         string   `koanf:"base_path"`
+	BaseURL          string   `koanf:"base_url"`
+	MaxAvatarSizeMB  int      `koanf:"max_avatar_size_mb"`
+	MaxCoverSizeMB   int      `koanf:"max_cover_size_mb"`
+	MaxPageSizeMB    int      `koanf:"max_page_size_mb"`
+	MaxBannerSizeMB  int      `koanf:"max_banner_size_mb"`
+	MaxThumbnailSizeMB int    `koanf:"max_thumbnail_size_mb"`
+	AllowedMimeTypes []string `koanf:"allowed_mime_types"`
 }
 
 type Config struct {
