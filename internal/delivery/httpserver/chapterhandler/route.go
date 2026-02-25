@@ -21,6 +21,7 @@ func (h Handler) SetRoutes(e *echo.Echo, authService auth.Service, authConfig au
 	protectedGroup.Use(middleware.UserContext())
 
 
+
 	// Page read
 	protectedGroup.GET("/:id/pages", h.getPages)
 

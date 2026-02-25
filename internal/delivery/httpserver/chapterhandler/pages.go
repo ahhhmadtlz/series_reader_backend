@@ -4,43 +4,42 @@ import (
 	"net/http"
 	"strconv"
 
+	sharedentity "github.com/ahhhmadtlz/series_reader_backend/internal/domain/shared/entity"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/param"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/pkg/httpmsgerrorhandler"
 	"github.com/labstack/echo/v4"
 )
 
-//uploadPage handles POST /chapters/:id/pages
-
+// uploadPage handles POST /chapters/:id/pages
 func (h Handler) uploadPage(c echo.Context) error {
-	chapterID, err:=parseID(c,"id")
-	if err !=nil{
-		return c.JSON(http.StatusBadRequest,httpmsgerrorhandler.ErrorResponse{
+	chapterID, err := parseID(c, "id")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
 			Message: "invalid chapter ID",
 		})
 	}
 
-	pageNumberStr :=c.FormValue("page_number")
-	pageNumber,err :=strconv.Atoi(pageNumberStr)
-
-	if err !=nil {
-		return c.JSON(http.StatusBadRequest,httpmsgerrorhandler.ErrorResponse{
+	pageNumberStr := c.FormValue("page_number")
+	pageNumber, err := strconv.Atoi(pageNumberStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
 			Message: "invalid page number",
 		})
 	}
 
-	file,header,err :=c.Request().FormFile("page")
-	if err !=nil{
-		return c.JSON(http.StatusBadRequest,httpmsgerrorhandler.ErrorResponse{
+	file, header, err := c.Request().FormFile("page")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
 			Message: "failed to read page file",
 		})
 	}
 	defer file.Close()
 
-	req:=param.UploadPageParam{
-		ChapterID: chapterID,
+	req := param.UploadPageParam{
+		ChapterID:  chapterID,
 		PageNumber: pageNumber,
-		File: file,
-		Header: header,
+		File:       file,
+		Header:     header,
 	}
 	if err := h.chapterValidator.ValidateUploadPage(c.Request().Context(), req); err != nil {
 		return httpmsgerrorhandler.Error(c, err)
@@ -52,13 +51,11 @@ func (h Handler) uploadPage(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusCreated, response)
-
 }
 
 // bulkUploadPages handles POST /chapters/:id/pages/bulk
 func (h Handler) bulkUploadPages(c echo.Context) error {
 	chapterID, err := parseID(c, "id")
-
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, httpmsgerrorhandler.ErrorResponse{
 			Message: "invalid chapter ID",
@@ -73,10 +70,14 @@ func (h Handler) bulkUploadPages(c echo.Context) error {
 	}
 
 	files := form.File["pages"]
+	force := c.FormValue("force") == "true"
+	callerRole, _ := c.Get("user_role").(sharedentity.Role)
 
 	req := param.BulkUploadParam{
-		ChapterID: chapterID,
-		Files:     files,
+		ChapterID:  chapterID,
+		Files:      files,
+		Force:      force,
+		CallerRole: callerRole,
 	}
 
 	if err := h.chapterValidator.ValidateBulkUpload(c.Request().Context(), req); err != nil {

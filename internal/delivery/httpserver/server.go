@@ -6,10 +6,12 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/config"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/adminhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/chapterhandler"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/imageprocessinghandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/serieshandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/uploadhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/userhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
@@ -30,6 +32,7 @@ import (
 	readinghistoryservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/service"
 	readinghistoryvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/validator"
 
+	ipservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/service"
 	uploadservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/service"
 	uploadvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/validator"
 )
@@ -45,6 +48,8 @@ type Server struct {
 	readingHistoryHandler readinghistoryhandler.Handler
 	adminHandler adminhandler.Handler
 	uploadHandler uploadhandler.Handler
+	imageProcessingHandler imageprocessinghandler.Handler
+	ipSvc ipservice.Service
 }
 
 // New creates a new HTTP server
@@ -63,6 +68,7 @@ func New(
 	readingHistoryValidator readinghistoryvalidator.Validator,
 	uploadSvc uploadservice.Service,
 	uploadValidator uploadvalidator.Validator,
+	ipSvc ipservice.Service, 
 ) Server {
 	return Server{
 		Router: echo.New(),
@@ -75,6 +81,7 @@ func New(
 		readingHistoryHandler: readinghistoryhandler.New(readingHistorySvc, readingHistoryValidator),
 		adminHandler: adminhandler.New(userSvc),
 		uploadHandler: uploadhandler.New(uploadSvc,uploadValidator),
+		imageProcessingHandler: imageprocessinghandler.New(ipSvc),
 	}
 }
 
@@ -140,6 +147,7 @@ func (s *Server) Serve() {
 	s.readingHistoryHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 	s.adminHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 	s.uploadHandler.SetRoutes(s.Router,s.authService,s.config.Auth)
+	s.imageProcessingHandler.SetRoutes(s.Router, s.authService, s.config.Auth)
 
 	// Start server
 	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)

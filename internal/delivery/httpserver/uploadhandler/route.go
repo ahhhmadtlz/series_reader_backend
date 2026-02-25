@@ -7,14 +7,17 @@ import (
 )
 
 func (h Handler) SetRoutes(e *echo.Echo, authService auth.Service, authConfig auth.Config) {
-	// Protected routes - require authentication
 	protectedGroup := e.Group("")
 	protectedGroup.Use(middleware.Auth(authService, authConfig))
 	protectedGroup.Use(middleware.UserContext())
 
-	// Upload avatar - any authenticated user can upload their own avatar
+	// Avatar — any authenticated user
 	protectedGroup.POST("/users/avatar", h.uploadAvatar)
 
-	// Upload series cover - requires manager or admin role
-	protectedGroup.POST("/series/:id/cover", h.uploadCover, middleware.RequireManagerOrAdmin())
+	// Series images — manager or admin
+	protectedGroup.POST("/series/:seriesID/cover", h.uploadCover, middleware.RequireManagerOrAdmin())
+	protectedGroup.POST("/series/:seriesID/banner", h.uploadBanner, middleware.RequireManagerOrAdmin())
+
+	// Chapter thumbnail — manager or admin
+	protectedGroup.POST("/chapters/:chapterID/thumbnail", h.uploadChapterThumbnail, middleware.RequireManagerOrAdmin())
 }

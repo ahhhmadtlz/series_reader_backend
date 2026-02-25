@@ -19,7 +19,7 @@ func (h Handler) uploadCover(c echo.Context) error {
 		})
 	}
 
-	seriesIDStr := c.Param("id")
+	seriesIDStr := c.Param("seriesID")
 	seriesID,err :=strconv.ParseUint(seriesIDStr,10,32)
 
 	if err !=nil{
