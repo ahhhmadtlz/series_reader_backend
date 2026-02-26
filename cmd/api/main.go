@@ -101,6 +101,7 @@ func main() {
 	// ========================================
 	authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator, bookmarkSvc, bookmarkValidator, readingHistorySvc, readingHistoryValidator, uploadSvc, uploadValidator, imageWorker, jobQueue, ipSvc := setupServices(postgresDB, cfg)
 
+
 	// ========================================
 	// Phase 7: River Worker Setup
 	// ========================================
@@ -125,21 +126,23 @@ func main() {
 	// Phase 3: HTTP Server Setup
 	// ========================================
 	server := httpserver.New(
-		*cfg,
-		authSvc,
-		seriesSvc,
-		seriesValidator,
-		chapterSvc,
-		chapterValidator,
-		userSvc,
-		userValidator,
-		bookmarkSvc,
-		bookmarkValidator,
-		readingHistorySvc,
-		readingHistoryValidator,
-		uploadSvc,
-		uploadValidator,
-		ipSvc,
+			*cfg,
+			authSvc,
+			seriesSvc,
+			seriesValidator,
+			chapterSvc,
+			seriesSvc,      // chapterhandler.SeriesService
+			chapterValidator,
+			userSvc,
+			userValidator,
+			bookmarkSvc,
+			bookmarkValidator,
+			readingHistorySvc,
+			readingHistoryValidator,
+			uploadSvc,
+			uploadValidator,
+			ipSvc,
+			userSvc,        // adminhandler.UserService
 	)
 
 	logger.Info("HTTP server initialized")

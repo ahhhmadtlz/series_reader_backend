@@ -16,24 +16,22 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/auth"
-	seriesservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/service"
-	seriesvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/validator"
 
-	chapterservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/service"
+	seriesvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/validator"
+	
 	chaptervalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/validator"
 	userservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/service"
 	uservalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/validator"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/bookmarkhandler"
-	bookmarkservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/service"
+	
 	bookmarkvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/validator"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/readinghistoryhandler"
-	readinghistoryservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/service"
+
 	readinghistoryvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/validator"
 
-	ipservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/service"
-	uploadservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/service"
+
 	uploadvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/validator"
 )
 
@@ -49,26 +47,27 @@ type Server struct {
 	adminHandler adminhandler.Handler
 	uploadHandler uploadhandler.Handler
 	imageProcessingHandler imageprocessinghandler.Handler
-	ipSvc ipservice.Service
 }
 
 // New creates a new HTTP server
 func New(
-	config config.Config,
-	authSvc auth.Service,
-	seriesSvc seriesservice.Service,
-	seriesValidator seriesvalidator.Validator,
-	chapterSvc chapterservice.Service,
-	chapterValidator chaptervalidator.Validator,
-	userSvc userservice.Service,
-	userValidator uservalidator.Validator,
-	bookmarkSvc bookmarkservice.Service,       
-	bookmarkValidator bookmarkvalidator.Validator, 
-	readingHistorySvc readinghistoryservice.Service,
-	readingHistoryValidator readinghistoryvalidator.Validator,
-	uploadSvc uploadservice.Service,
-	uploadValidator uploadvalidator.Validator,
-	ipSvc ipservice.Service, 
+   config config.Config,
+    authSvc auth.Service,
+    seriesSvc serieshandler.SeriesService,
+    seriesValidator seriesvalidator.Validator,
+    chapterSvc chapterhandler.ChapterService,
+    chapterSeriesSvc chapterhandler.SeriesService,
+    chapterValidator chaptervalidator.Validator,
+    userSvc userhandler.UserService,
+    userValidator uservalidator.Validator,
+    bookmarkSvc bookmarkhandler.BookmarkService,
+    bookmarkValidator bookmarkvalidator.Validator,
+    readingHistorySvc readinghistoryhandler.ReadingHistoryService,
+    readingHistoryValidator readinghistoryvalidator.Validator,
+    uploadSvc uploadhandler.UploadService,
+    uploadValidator uploadvalidator.Validator,
+    ipSvc imageprocessinghandler.ImageProcessingService,
+    adminSvc userservice.Service,
 ) Server {
 	return Server{
 		Router: echo.New(),
@@ -79,7 +78,7 @@ func New(
 		userHandler: userhandler.New(userSvc,userValidator),
 		bookmarkHandler: bookmarkhandler.New(bookmarkSvc, bookmarkValidator),
 		readingHistoryHandler: readinghistoryhandler.New(readingHistorySvc, readingHistoryValidator),
-		adminHandler: adminhandler.New(userSvc),
+		adminHandler: adminhandler.New(adminSvc),
 		uploadHandler: uploadhandler.New(uploadSvc,uploadValidator),
 		imageProcessingHandler: imageprocessinghandler.New(ipSvc),
 	}
