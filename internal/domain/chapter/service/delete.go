@@ -17,21 +17,8 @@ func (s Service) Delete(ctx context.Context, id uint) error {
 
 	// 2. for each page, delete variant files, variant rows, source file
 	for _, p := range pages {
-		variants, err := s.variantRepo.GetVariantsByPageID(ctx, p.ID)
-		if err != nil {
-			logger.Error("failed to get variants for page", "page_id", p.ID, "error", err)
-		}
-
-		for _, v := range variants {
-			if v.RemotePath != "" {
-				if err := s.storage.Delete(ctx, v.RemotePath); err != nil {
-					logger.Error("failed to delete variant file", "remote_path", v.RemotePath, "error", err)
-				}
-			}
-		}
-
-		if err := s.variantRepo.DeleteVariantsByPageID(ctx, p.ID); err != nil {
-			logger.Error("failed to delete variant rows", "page_id", p.ID, "error", err)
+		if err := s.ipSvc.DeletePageVariants(ctx, p.ID); err != nil {
+			logger.Error("failed to delete variants for page", "page_id", p.ID, "error", err)
 		}
 
 		if p.RemotePath != "" {

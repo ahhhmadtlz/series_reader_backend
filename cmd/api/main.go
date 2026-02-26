@@ -231,19 +231,19 @@ func setupServices(db *postgres.DB, cfg *config.Config) (
 	jobQueue := worker.NewRiverJobQueue(nil)
 	logger.Info("Job queue initialized")
 
+	ipSvc := ipservice.New(imageVariantRepo, coverVariantRepo, bannerVariantRepo, chapterThumbnailVariantRepo, localStorage)
+	logger.Info("Image processing service initialized")
+
 	imageWorker := worker.NewImageProcessingWorker(
-			imageProcessor,
-			imageVariantRepo,
-			coverVariantRepo,
-			bannerVariantRepo,
-			chapterThumbnailVariantRepo,
-			localStorage,
-			cfg.Upload.BasePath,
+		imageProcessor,
+		imageVariantRepo,
+		coverVariantRepo,
+		bannerVariantRepo,
+		chapterThumbnailVariantRepo,
+		ipSvc,
+		cfg.Upload.BasePath,
 	)
 	logger.Info("Image processing worker initialized")
-
-	ipSvc := ipservice.New(imageVariantRepo, coverVariantRepo, bannerVariantRepo, chapterThumbnailVariantRepo)
-	logger.Info("Image processing service initialized")
 
 	// ========================================
 	// Chapter Setup
@@ -254,7 +254,7 @@ func setupServices(db *postgres.DB, cfg *config.Config) (
 	chapterValidator := chaptervalidator.New(cfg.Upload)
 	logger.Info("Chapter validator initialized")
 
-	chapterService := chapterservice.New(chapterRepository, localStorage, jobQueue, imageVariantRepo)
+	chapterService := chapterservice.New(chapterRepository, localStorage, jobQueue, imageVariantRepo, ipSvc)
 
 	// ========================================
 	// User Setup
@@ -304,7 +304,7 @@ func setupServices(db *postgres.DB, cfg *config.Config) (
 	uploadService := uploadservice.New(uploadRepository, userRepository, seriesRepository, chapterRepository, localStorage, jobQueue)
 	logger.Info("Upload service initialized")
 
-	seriesService := seriesservice.New(seriesRepository, localStorage, uploadRepository, chapterRepository, imageVariantRepo, coverVariantRepo, bannerVariantRepo, chapterThumbnailVariantRepo)
+	seriesService := seriesservice.New(seriesRepository, localStorage, uploadRepository, chapterRepository, ipSvc)
 	logger.Info("Series service initialized")
 
 	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator, bookmarkService, bookmarkValidator, readingHistoryService, readingHistoryValidator, uploadService, uploadValidator, imageWorker, jobQueue, ipSvc

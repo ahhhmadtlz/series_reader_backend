@@ -7,9 +7,9 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/entity"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/param"
 	iprepo "github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/repository"
+	ipservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/service"
 	uploadentity "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/entity"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/infrastructure/imageprocessor"
-	"github.com/ahhhmadtlz/series_reader_backend/internal/infrastructure/storage"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/pkg/richerror"
 	"github.com/riverqueue/river"
@@ -17,13 +17,13 @@ import (
 
 type ImageProcessingWorker struct {
 	river.WorkerDefaults[param.ProcessImageArgs]
-	processor     imageprocessor.Processor
-	repo          iprepo.Repository
-	coverRepo     iprepo.CoverVariantRepository
-	bannerRepo    iprepo.BannerVariantRepository
+	processor imageprocessor.Processor
+	repo      iprepo.Repository
+	coverRepo iprepo.CoverVariantRepository
+	bannerRepo iprepo.BannerVariantRepository
 	thumbnailRepo iprepo.ChapterThumbnailRepository
-	storage       storage.Storage
-	basePath      string
+	ipSvc     ipservice.Service
+	basePath  string
 }
 
 func NewImageProcessingWorker(
@@ -32,7 +32,7 @@ func NewImageProcessingWorker(
 	coverRepo iprepo.CoverVariantRepository,
 	bannerRepo iprepo.BannerVariantRepository,
 	thumbnailRepo iprepo.ChapterThumbnailRepository,
-	store storage.Storage,
+	ipSvc ipservice.Service,
 	basePath string,
 ) *ImageProcessingWorker {
 	return &ImageProcessingWorker{
@@ -41,7 +41,7 @@ func NewImageProcessingWorker(
 		coverRepo:     coverRepo,
 		bannerRepo:    bannerRepo,
 		thumbnailRepo: thumbnailRepo,
-		storage:       store,
+		ipSvc:         ipSvc,
 		basePath:      basePath,
 	}
 }
@@ -146,58 +146,19 @@ func (w *ImageProcessingWorker) deleteExistingVariants(ctx context.Context, args
 
 	switch args.ImageKind {
 	case uploadentity.ImageKindChapterPage:
-		variants, err := w.repo.GetVariantsByPageID(ctx, args.PageID)
-		if err != nil {
-			return richerror.New(op).WithErr(err).WithMessage("failed to fetch existing image variants").WithKind(richerror.KindUnexpected)
-		}
-		for _, v := range variants {
-			if err := w.storage.Delete(ctx, v.RemotePath); err != nil {
-				logger.Warn("failed to delete variant file, skipping", "path", v.RemotePath, "error", err)
-			}
-		}
-		if err := w.repo.DeleteVariantsByPageID(ctx, args.PageID); err != nil {
+		if err := w.ipSvc.DeletePageVariants(ctx, args.PageID); err != nil {
 			return richerror.New(op).WithErr(err).WithMessage("failed to delete existing image variants").WithKind(richerror.KindUnexpected)
 		}
-
 	case uploadentity.ImageKindCover:
-		variants, err := w.coverRepo.GetCoverVariantsBySeriesID(ctx, args.OwnerID)
-		if err != nil {
-			return richerror.New(op).WithErr(err).WithMessage("failed to fetch existing cover variants").WithKind(richerror.KindUnexpected)
-		}
-		for _, v := range variants {
-			if err := w.storage.Delete(ctx, v.RemotePath); err != nil {
-				logger.Warn("failed to delete cover variant file, skipping", "path", v.RemotePath, "error", err)
-			}
-		}
-		if err := w.coverRepo.DeleteCoverVariantsBySeriesID(ctx, args.OwnerID); err != nil {
+		if err := w.ipSvc.DeleteCoverVariants(ctx, args.OwnerID); err != nil {
 			return richerror.New(op).WithErr(err).WithMessage("failed to delete existing cover variants").WithKind(richerror.KindUnexpected)
 		}
-
 	case uploadentity.ImageKindBanner:
-		variants, err := w.bannerRepo.GetBannerVariantsBySeriesID(ctx, args.OwnerID)
-		if err != nil {
-			return richerror.New(op).WithErr(err).WithMessage("failed to fetch existing banner variants").WithKind(richerror.KindUnexpected)
-		}
-		for _, v := range variants {
-			if err := w.storage.Delete(ctx, v.RemotePath); err != nil {
-				logger.Warn("failed to delete banner variant file, skipping", "path", v.RemotePath, "error", err)
-			}
-		}
-		if err := w.bannerRepo.DeleteBannerVariantsBySeriesID(ctx, args.OwnerID); err != nil {
+		if err := w.ipSvc.DeleteBannerVariants(ctx, args.OwnerID); err != nil {
 			return richerror.New(op).WithErr(err).WithMessage("failed to delete existing banner variants").WithKind(richerror.KindUnexpected)
 		}
-
 	case uploadentity.ImageKindChapterThumbnail:
-		variants, err := w.thumbnailRepo.GetChapterThumbnailVariantsByChapterID(ctx, args.OwnerID)
-		if err != nil {
-			return richerror.New(op).WithErr(err).WithMessage("failed to fetch existing thumbnail variants").WithKind(richerror.KindUnexpected)
-		}
-		for _, v := range variants {
-			if err := w.storage.Delete(ctx, v.RemotePath); err != nil {
-				logger.Warn("failed to delete thumbnail variant file, skipping", "path", v.RemotePath, "error", err)
-			}
-		}
-		if err := w.thumbnailRepo.DeleteChapterThumbnailVariantsByChapterID(ctx, args.OwnerID); err != nil {
+		if err := w.ipSvc.DeleteThumbnailVariants(ctx, args.OwnerID); err != nil {
 			return richerror.New(op).WithErr(err).WithMessage("failed to delete existing thumbnail variants").WithKind(richerror.KindUnexpected)
 		}
 	}

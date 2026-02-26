@@ -11,30 +11,14 @@ import (
 func (s Service) Delete(ctx context.Context, id uint) error {
 	const op = richerror.Op("service.series.Delete")
 
-	// 1. delete cover variant files
-	coverVariants, err := s.coverRepo.GetCoverVariantsBySeriesID(ctx, id)
-	if err != nil {
-		logger.Error("failed to get cover variants", "series_id", id, "error", err)
-	}
-	for _, v := range coverVariants {
-		if v.RemotePath != "" {
-			if err := s.storage.Delete(ctx, v.RemotePath); err != nil {
-				logger.Error("failed to delete cover variant file", "remote_path", v.RemotePath, "error", err)
-			}
-		}
+	// 1. delete cover variant files and rows
+	if err := s.ipSvc.DeleteCoverVariants(ctx, id); err != nil {
+		logger.Error("failed to delete cover variants", "series_id", id, "error", err)
 	}
 
-	// 2. delete banner variant files
-	bannerVariants, err := s.bannerRepo.GetBannerVariantsBySeriesID(ctx, id)
-	if err != nil {
-		logger.Error("failed to get banner variants", "series_id", id, "error", err)
-	}
-	for _, v := range bannerVariants {
-		if v.RemotePath != "" {
-			if err := s.storage.Delete(ctx, v.RemotePath); err != nil {
-				logger.Error("failed to delete banner variant file", "remote_path", v.RemotePath, "error", err)
-			}
-		}
+	// 2. delete banner variant files and rows
+	if err := s.ipSvc.DeleteBannerVariants(ctx, id); err != nil {
+		logger.Error("failed to delete banner variants", "series_id", id, "error", err)
 	}
 
 	// 3. delete cover and banner source images
@@ -57,17 +41,9 @@ func (s Service) Delete(ctx context.Context, id uint) error {
 		logger.Error("failed to get chapters for series", "series_id", id, "error", err)
 	}
 	for _, ch := range chapters {
-		// thumbnail variant files
-		thumbnailVariants, err := s.thumbnailRepo.GetChapterThumbnailVariantsByChapterID(ctx, ch.ID)
-		if err != nil {
-			logger.Error("failed to get thumbnail variants", "chapter_id", ch.ID, "error", err)
-		}
-		for _, v := range thumbnailVariants {
-			if v.RemotePath != "" {
-				if err := s.storage.Delete(ctx, v.RemotePath); err != nil {
-					logger.Error("failed to delete thumbnail variant file", "remote_path", v.RemotePath, "error", err)
-				}
-			}
+		// thumbnail variant files and rows
+		if err := s.ipSvc.DeleteThumbnailVariants(ctx, ch.ID); err != nil {
+			logger.Error("failed to delete thumbnail variants", "chapter_id", ch.ID, "error", err)
 		}
 
 		// chapter thumbnail source image
@@ -81,23 +57,15 @@ func (s Service) Delete(ctx context.Context, id uint) error {
 			}
 		}
 
-		// page variant files and source files
+		// page variant files, rows, and source files
 		pages, err := s.chapterRepo.GetPagesByChapterID(ctx, ch.ID)
 		if err != nil {
 			logger.Error("failed to get pages", "chapter_id", ch.ID, "error", err)
 			continue
 		}
 		for _, p := range pages {
-			variants, err := s.imageVariantRepo.GetVariantsByPageID(ctx, p.ID)
-			if err != nil {
-				logger.Error("failed to get page variants", "page_id", p.ID, "error", err)
-			}
-			for _, v := range variants {
-				if v.RemotePath != "" {
-					if err := s.storage.Delete(ctx, v.RemotePath); err != nil {
-						logger.Error("failed to delete page variant file", "remote_path", v.RemotePath, "error", err)
-					}
-				}
+			if err := s.ipSvc.DeletePageVariants(ctx, p.ID); err != nil {
+				logger.Error("failed to delete page variants", "page_id", p.ID, "error", err)
 			}
 			if p.RemotePath != "" {
 				if err := s.storage.Delete(ctx, p.RemotePath); err != nil {

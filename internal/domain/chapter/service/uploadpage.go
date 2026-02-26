@@ -34,19 +34,8 @@ func (s Service) UploadPage(ctx context.Context, req param.UploadPageParam) (par
 	existing, err := s.repo.GetPageByNumber(ctx, req.ChapterID, req.PageNumber)
 	if err == nil && existing != nil {
 		// delete variant files and rows
-		variants, err := s.variantRepo.GetVariantsByPageID(ctx, existing.ID)
-		if err != nil {
-			logger.Error("failed to get variants for existing page", "page_id", existing.ID, "error", err)
-		}
-		for _, v := range variants {
-			if v.RemotePath != "" {
-				if err := s.storage.Delete(ctx, v.RemotePath); err != nil {
-					logger.Error("failed to delete variant file", "remote_path", v.RemotePath, "error", err)
-				}
-			}
-		}
-		if err := s.variantRepo.DeleteVariantsByPageID(ctx, existing.ID); err != nil {
-			logger.Error("failed to delete variant rows", "page_id", existing.ID, "error", err)
+		if err := s.ipSvc.DeletePageVariants(ctx, existing.ID); err != nil {
+			logger.Error("failed to delete variants for existing page", "page_id", existing.ID, "error", err)
 		}
 		// delete page row
 		if err := s.repo.DeletePage(ctx, existing.ID); err != nil {

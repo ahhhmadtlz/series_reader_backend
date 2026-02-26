@@ -4,7 +4,7 @@ import (
 	"time"
 
 	chapterrepo "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/repository"
-	iprepo "github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/repository"
+	ipservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/imageprocessing/service"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/entity"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/param"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/repository"
@@ -13,35 +13,26 @@ import (
 )
 
 type Service struct {
-	repo           repository.Repository
-	storage        storage.Storage
-	uploadRepo     uploadrepository.Repository
-	chapterRepo    chapterrepo.Repository
-	imageVariantRepo iprepo.Repository
-	coverRepo      iprepo.CoverVariantRepository
-	bannerRepo     iprepo.BannerVariantRepository
-	thumbnailRepo  iprepo.ChapterThumbnailRepository
+	repo        repository.Repository
+	storage     storage.Storage
+	uploadRepo  uploadrepository.Repository
+	chapterRepo chapterrepo.Repository
+	ipSvc       ipservice.Service
 }
 
 func New(
 	repo repository.Repository,
-	storage storage.Storage,
+	store storage.Storage,
 	uploadRepo uploadrepository.Repository,
 	chapterRepo chapterrepo.Repository,
-	imageVariantRepo iprepo.Repository,
-	coverRepo iprepo.CoverVariantRepository,
-	bannerRepo iprepo.BannerVariantRepository,
-	thumbnailRepo iprepo.ChapterThumbnailRepository,
+	ipSvc ipservice.Service,
 ) Service {
 	return Service{
-		repo:             repo,
-		storage:          storage,
-		uploadRepo:       uploadRepo,
-		chapterRepo:      chapterRepo,
-		imageVariantRepo: imageVariantRepo,
-		coverRepo:        coverRepo,
-		bannerRepo:       bannerRepo,
-		thumbnailRepo:    thumbnailRepo,
+		repo:        repo,
+		storage:     store,
+		uploadRepo:  uploadRepo,
+		chapterRepo: chapterRepo,
+		ipSvc:       ipSvc,
 	}
 }
 

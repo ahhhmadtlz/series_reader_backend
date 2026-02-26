@@ -59,32 +59,14 @@ func (s Service) BulkUploadPages(ctx context.Context, req param.BulkUploadParam)
 	// 5. delete existing pages, their variant files, and source files
 	if len(existing) > 0 {
 		for _, p := range existing {
-			// fetch variants for this page
-			variants, err := s.variantRepo.GetVariantsByPageID(ctx, p.ID)
-			if err != nil {
-				logger.Error("failed to get variants for page", "page_id", p.ID, "error", err)
+			if err := s.ipSvc.DeletePageVariants(ctx, p.ID); err != nil {
+				logger.Error("failed to delete variants for page", "page_id", p.ID, "error", err)
 			}
 
-			// delete each variant file from disk
-			for _, v := range variants {
-				if v.RemotePath != "" {
-					if err := s.storage.Delete(ctx, v.RemotePath); err != nil {
-						logger.Error("failed to delete variant file", "remote_path", v.RemotePath, "error", err)
-					}
-				}
-			}
-
-			// delete variant rows from DB
-			if err := s.variantRepo.DeleteVariantsByPageID(ctx, p.ID); err != nil {
-				logger.Error("failed to delete variant rows", "page_id", p.ID, "error", err)
-			}
-
-			// delete the page row from DB
 			if err := s.repo.DeletePage(ctx, p.ID); err != nil {
 				logger.Error("failed to delete existing page", "page_id", p.ID, "error", err)
 			}
 
-			// delete source image file from disk
 			if p.RemotePath != "" {
 				if err := s.storage.Delete(ctx, p.RemotePath); err != nil {
 					logger.Error("failed to delete existing page file", "remote_path", p.RemotePath, "error", err)
