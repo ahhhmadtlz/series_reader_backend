@@ -50,17 +50,16 @@ func (s Service) UploadAvatar(ctx context.Context, req param.UploadAvatarRequest
 					"old_path", oldAvatar.StoredPath,
 			)
 
-			// Delete file first — if this fails, keep DB row so we can retry later
-			if err := s.storage.Delete(ctx, oldAvatar.StoredPath); err != nil {
-					logger.Error("Failed to delete old avatar file, skipping DB cleanup",
-							"user_id", req.UserID,
-							"stored_path", oldAvatar.StoredPath,
-							"error", err.Error(),
-					)
-			} else {
-					// File gone — now safe to remove DB row
-					_ = s.uploadRepo.DeleteByID(ctx, oldAvatar.ID)
-			}
+		// Delete file — if file is missing from storage, still clean up DB row
+		if err := s.storage.Delete(ctx, oldAvatar.StoredPath); err != nil {
+				logger.Error("Failed to delete old avatar file, cleaning up DB row anyway",
+						"user_id", req.UserID,
+						"stored_path", oldAvatar.StoredPath,
+						"error", err.Error(),
+				)
+		}
+		// Always remove DB row — file is either deleted or already gone
+		_ = s.uploadRepo.DeleteByID(ctx, oldAvatar.ID)
 	}
 
 	saveReq := storage.SaveRequest{
