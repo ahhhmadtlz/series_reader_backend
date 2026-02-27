@@ -7,6 +7,7 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/adminhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/chapterhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/imageprocessinghandler"
+	custommiddleware "github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/middleware"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/serieshandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/uploadhandler"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/userhandler"
@@ -18,19 +19,18 @@ import (
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/auth"
 
 	seriesvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/series/validator"
-	
+
 	chaptervalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/chapter/validator"
 	userservice "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/service"
 	uservalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/validator"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/bookmarkhandler"
-	
+
 	bookmarkvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/bookmark/validator"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/readinghistoryhandler"
 
 	readinghistoryvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/readinghistory/validator"
-
 
 	uploadvalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/upload/validator"
 )
@@ -88,6 +88,12 @@ func (s *Server) Serve() {
 	// Setup middleware
 	s.Router.Use(middleware.Recover())
 	s.Router.Use(middleware.RequestID())
+
+
+	// Global IP rate limit — covers all routes including public ones.
+	// 10 req/sec per IP, burst of 20. Raised cost for scrapers and bots.
+	// See ratelimit.go for the NOTE on IPExtractor if behind a proxy.
+	s.Router.Use(custommiddleware.IPRateLimit(10, 20))
 
 	// Request logger middleware using global logger
 	s.Router.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
