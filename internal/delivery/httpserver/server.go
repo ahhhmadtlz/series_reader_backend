@@ -98,7 +98,19 @@ func (s *Server) Serve() {
 		AllowCredentials: true,
 		MaxAge: 86400, // cache preflight for 24h
 	}))
-	
+
+
+	// Security headers — sets X-Content-Type-Options, X-Frame-Options,
+	// X-XSS-Protection, and Strict-Transport-Security on every response.
+	s.Router.Use(middleware.SecureWithConfig(middleware.SecureConfig{
+			XSSProtection:         "1; mode=block",
+			ContentTypeNosniff:    "nosniff",
+			XFrameOptions:         "SAMEORIGIN",
+			HSTSMaxAge:            31536000, // 1 year in seconds
+			HSTSExcludeSubdomains: false,
+			ContentSecurityPolicy: "default-src 'self'",
+	}))
+
 	// Setup middleware
 	s.Router.Use(middleware.Recover())
 	s.Router.Use(middleware.RequestID())
