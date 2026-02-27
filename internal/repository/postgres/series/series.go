@@ -150,7 +150,7 @@ func (r *PostgresRepository)GetList(ctx context.Context,req param.GetListRequest
 	argCounter:=1
 
 	if req.Filter.Status !=""{
-		whereClauses=append(whereClauses, fmt.Sprintf("Status= $%d",argCounter))
+		whereClauses=append(whereClauses, fmt.Sprintf("status= $%d",argCounter))
 		args = append(args, req.Filter.Status)
 		argCounter++
 	}
