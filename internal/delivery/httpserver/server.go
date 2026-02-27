@@ -88,6 +88,17 @@ func (s *Server) Serve() {
 	// Body limit — reject oversized requests before any handler reads the body.
 	// Set to the largest expected upload (max_page_size_mb=15) plus headroom.
 	s.Router.Use(middleware.BodyLimit(fmt.Sprintf("%dMB", s.config.HTTPServer.BodyLimitMB)))
+
+	// CORS — must be before any route handler so preflight OPTIONS requests
+	// are handled before auth middleware rejects them.
+	s.Router.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: s.config.CORS.AllowedOrigins,
+		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
+		AllowCredentials: true,
+		MaxAge: 86400, // cache preflight for 24h
+	}))
+	
 	// Setup middleware
 	s.Router.Use(middleware.Recover())
 	s.Router.Use(middleware.RequestID())

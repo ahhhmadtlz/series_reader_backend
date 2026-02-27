@@ -31,14 +31,17 @@ auth:
   access_subject: "access-token"
   refresh_subject: "refresh-token"
 
-  upload:
-    base_path: "./uploads"
-    base_url: "http://localhost:8080/uploads"
-    max_avatar_size_mb: 5
-    max_cover_size_mb: 10
-    max_page_size_mb: 15
-    allowed_mime_types:
-      - "image/jpeg"
-      - "image/jpg"
-      - "image/png"
-      - "image/webp"
+upload:
+  base_path: "./uploads"
+  base_url: "http://localhost:8080/uploads"
+  max_avatar_size_mb: 5
+  max_cover_size_mb: 10
+  max_page_size_mb: 15
+  allowed_mime_types:
+    - "image/jpeg"
+    - "image/jpg"
+    - "image/png"
+    - "image/webp"
+cors:
+  allowed_origins:
+    - "http://localhost:3000"

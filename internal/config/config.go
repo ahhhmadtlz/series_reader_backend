@@ -10,6 +10,11 @@ type HTTPServer struct {
 	BodyLimitMB int `koanf:"body_limit_mb"`
 }
 
+type CORS struct {
+	AllowedOrigins []string `koanf:"allowed_origins"`
+}
+
+
 type Postgres struct {
     Host     string `koanf:"host"`
     Port     int    `koanf:"port"`
@@ -36,6 +41,7 @@ type Config struct {
 	Logger     logger.Config `koanf:"logger"`
   Auth       auth.Config   `koanf:"auth"`
   Upload     Upload        `koanf:"upload"`
+	CORS       CORS          `koanf:"cors"`
 }
 
 
