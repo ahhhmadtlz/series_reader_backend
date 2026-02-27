@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/riverqueue/river/riverdriver/riverdatabasesql"
 	"github.com/riverqueue/river/rivermigrate"
@@ -54,7 +57,9 @@ import (
 	uploadrepo "github.com/ahhhmadtlz/series_reader_backend/internal/repository/postgres/upload"
 )
 
+
 func main() {
+
 	// 1. Load configuration
 	cfg, err := config.Load(config.DefaultOption())
 	if err != nil {
@@ -96,37 +101,28 @@ func main() {
 	}
 	logger.Info("River tables ready")
 
-
 	// ========================================
 	// Phase 2: Setup Services
 	// ========================================
-	// LazyJobQueue breaks the circular dependency: setupServices needs a
-	// JobQueue to wire chapterService and uploadService, but the River client
-	// (and thus the real RiverJobQueue) can only be built after imageWorker
-	// is returned from setupServices. LazyJobQueue is safe — Enqueue returns
-	// a clear error if called before Set, instead of panicking on nil.
 	lazyQueue := worker.NewLazyJobQueue()
 	authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator, bookmarkSvc, bookmarkValidator, readingHistorySvc, readingHistoryValidator, uploadSvc, uploadValidator, imageWorker, ipSvc := setupServices(postgresDB, cfg, lazyQueue)
 
 	// ========================================
 	// Phase 7: River Worker Setup
 	// ========================================
-  riverClient, err := worker.NewRiverClient(postgresDB.Conn(), imageWorker)
+	riverClient, err := worker.NewRiverClient(postgresDB.Conn(), imageWorker)
 	if err != nil {
 		logger.Fatal("Failed to create River client", "error", err.Error())
 	}
 
-	// Now that the River client exists, activate the job queue.
-	// From this point on, Enqueue calls are fully safe.
 	lazyQueue.Set(worker.NewRiverJobQueue(riverClient))
 
 	workerCtx, workerCancel := context.WithCancel(context.Background())
-	defer workerCancel()
+	defer workerCancel() // safety net for unexpected exits
 
 	if err := worker.StartWorker(workerCtx, riverClient); err != nil {
 		logger.Fatal("Failed to start River worker", "error", err.Error())
 	}
-	defer worker.StopWorker(workerCtx, riverClient)
 
 	logger.Info("River worker started")
 
@@ -134,23 +130,23 @@ func main() {
 	// Phase 3: HTTP Server Setup
 	// ========================================
 	server := httpserver.New(
-			*cfg,
-			authSvc,
-			seriesSvc,
-			seriesValidator,
-			chapterSvc,
-			seriesSvc,      // chapterhandler.SeriesService
-			chapterValidator,
-			userSvc,
-			userValidator,
-			bookmarkSvc,
-			bookmarkValidator,
-			readingHistorySvc,
-			readingHistoryValidator,
-			uploadSvc,
-			uploadValidator,
-			ipSvc,
-			userSvc,        // adminhandler.UserService
+		*cfg,
+		authSvc,
+		seriesSvc,
+		seriesValidator,
+		chapterSvc,
+		seriesSvc,
+		chapterValidator,
+		userSvc,
+		userValidator,
+		bookmarkSvc,
+		bookmarkValidator,
+		readingHistorySvc,
+		readingHistoryValidator,
+		uploadSvc,
+		uploadValidator,
+		ipSvc,
+		userSvc,
 	)
 
 	logger.Info("HTTP server initialized")
@@ -165,18 +161,34 @@ func main() {
 		"auth_api", "http://localhost:8080/users",
 	)
 
-	// 7. Wait for interrupt signal
+	// ========================================
+	// Graceful Shutdown
+	// ========================================
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
-	logger.Info("Received interrupt signal, shutting down gracefully...")
+	logger.Info("Received shutdown signal, draining in-flight requests...")
 
+	// 1. Stop accepting new requests, wait up to 30s for in-flight to finish
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Error("HTTP server forced to close before draining", "error", err.Error())
+	}
+	logger.Info("HTTP server stopped")
+
+	// 2. Stop River worker — finish current jobs, accept no new ones
+	worker.StopWorker(workerCtx, riverClient)
+	logger.Info("River worker stopped")
+
+	// 3. Close DB last — everything above may still need it
 	if err := postgresDB.Close(); err != nil {
 		logger.Error("Failed to close database connection", "error", err.Error())
 	}
 
-	logger.Info("Application stopped")
+	logger.Info("Application stopped cleanly")
 }
 
 func setupServices(db *postgres.DB, cfg *config.Config, jobQueue worker.JobQueue) (

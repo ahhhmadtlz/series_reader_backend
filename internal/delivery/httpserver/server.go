@@ -1,7 +1,10 @@
 package httpserver
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/config"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/delivery/httpserver/adminhandler"
@@ -182,14 +185,18 @@ func (s *Server) Serve() {
 
 	// Start server
 	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)
-	
+
 	logger.Info("Starting Echo server",
-		"address", address,
+			"address", address,
 	)
 
-	if err := s.Router.Start(address); err != nil {
-		logger.Error("Failed to start server",
-			"error", err.Error(),
-		)
+	if err := s.Router.Start(address); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Failed to start server", "error", err.Error())
 	}
+}
+
+
+// Shutdown gracefully drains in-flight requests within the given context deadline.
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.Router.Shutdown(ctx)
 }
