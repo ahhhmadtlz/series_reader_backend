@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -41,6 +42,7 @@ import (
 type Server struct {
 	config config.Config
 	Router *echo.Echo
+	db  *sql.DB
 	authService auth.Service
 	seriesHandler serieshandler.Handler
 	chapterHandler chapterhandler.Handler
@@ -56,6 +58,7 @@ type Server struct {
 func New(
    config config.Config,
     authSvc auth.Service,
+		db *sql.DB,
     seriesSvc serieshandler.SeriesService,
     seriesValidator seriesvalidator.Validator,
     chapterSvc chapterhandler.ChapterService,
@@ -75,6 +78,7 @@ func New(
 	return Server{
 		Router: echo.New(),
 		config: config,
+		db:db,
 		authService: authSvc,
 		seriesHandler: serieshandler.New(seriesSvc, seriesValidator),
 		chapterHandler: chapterhandler.New(chapterSvc, seriesSvc, chapterValidator),

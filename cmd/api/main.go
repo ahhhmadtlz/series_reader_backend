@@ -135,6 +135,7 @@ func main() {
 	server := httpserver.New(
 		*cfg,
 		authSvc,
+		postgresDB.Conn(),
 		seriesSvc,
 		seriesValidator,
 		chapterSvc,
