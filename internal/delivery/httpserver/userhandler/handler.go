@@ -1,9 +1,11 @@
 package userhandler
 
 import (
-    "context"
-    userparam "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/param"
-    uservalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/validator"
+	"context"
+
+	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/param"
+	userparam "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/param"
+	uservalidator "github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/validator"
 )
 
 type UserService interface {
@@ -13,6 +15,7 @@ type UserService interface {
     GetProfile(ctx context.Context, userID uint) (userparam.GetProfileResponse, error)
     UpdateProfile(ctx context.Context, userID uint, req userparam.UpdateProfileRequest) (userparam.UpdateProfileResponse, error)
     ChangePassword(ctx context.Context, userID uint, req userparam.ChangePasswordRequest) (userparam.ChangePasswordResponse, error)
+    Logout(ctx context.Context, req param.LogoutRequest) error
 }
 
 type Handler struct {

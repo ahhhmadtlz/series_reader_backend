@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/auth"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/entity"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/param"
@@ -8,11 +10,11 @@ import (
 )
 
 type AuthService interface {
-	CreateAccessToken(user entity.User)(string,error)
-	CreateRefreshToken(user entity.User)(string,error)
-	ParseRefreshToken(refreshToken string)(*auth.Claims,error)
+	CreateAccessToken(user entity.User) (string, error)
+	CreateRefreshToken(user entity.User) (string, error)
+	ParseRefreshToken(refreshToken string) (*auth.Claims, error)
+	RefreshExpirationTime() time.Duration
 }
-
 
 
 type Service struct {

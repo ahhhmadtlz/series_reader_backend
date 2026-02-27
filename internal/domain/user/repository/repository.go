@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
+	"time"
 
-	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/entity"
 	sharedentity "github.com/ahhhmadtlz/series_reader_backend/internal/domain/shared/entity"
+	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/entity"
 )
 
 type Repository interface {
@@ -25,4 +26,8 @@ type Repository interface {
 	UpdateUserRole(ctx context.Context,userID uint ,role sharedentity.Role)error
 	GrantPermission(ctx context.Context,userID uint, permission string, grantedBy uint)error
 	RevokePermission(ctx context.Context,userID uint, permission string)error
+  // refresh tokens
+	SaveRefreshToken(ctx context.Context, userID uint, tokenHash string, expiresAt time.Time) error
+  RevokeRefreshToken(ctx context.Context, tokenHash string) error
+  IsRefreshTokenValid(ctx context.Context, tokenHash string) (bool, error)
 }

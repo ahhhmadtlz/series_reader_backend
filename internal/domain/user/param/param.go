@@ -35,6 +35,11 @@ type LoginResponse struct {
 	Tokens Tokens
 }
 
+type LogoutRequest struct {
+	UserID       uint
+	RefreshToken string `json:"refresh_token"`
+}
+
 type GetProfileResponse struct {
 	User UserInfo `json:"user"`
 }

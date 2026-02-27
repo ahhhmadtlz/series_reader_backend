@@ -22,6 +22,7 @@ func (h Handler) SetRoutes(e *echo.Echo, authService auth.Service, authConfig au
 	protectedGroup.Use(middleware.UserRateLimit(30, 50))
 
 	protectedGroup.GET("/profile", h.getProfile)
+	protectedGroup.POST("/logout", h.logout)
 	protectedGroup.PUT("/profile", h.updateProfile)
 	protectedGroup.PUT("/password", h.changePassword)
 }

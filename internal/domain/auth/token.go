@@ -15,6 +15,10 @@ func (s Service) CreateRefreshToken(user entity.User) (string, error) {
 	return s.createToken(user, s.config.RefreshSubject, s.config.RefreshExpirationTime)
 }
 
+func (s Service) RefreshExpirationTime() time.Duration {
+	return s.config.RefreshExpirationTime
+}
+
 func (s Service) createToken(
 	user entity.User,
 	subject string,

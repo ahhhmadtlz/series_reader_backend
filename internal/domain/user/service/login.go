@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/ahhhmadtlz/series_reader_backend/internal/domain/user/param"
 	"github.com/ahhhmadtlz/series_reader_backend/internal/observability/logger"
@@ -71,6 +72,20 @@ func (s Service) Login(ctx context.Context, req param.LoginRequest)(param.LoginR
 			WithMessage("failed to create refresh token").
 			WithKind(richerror.KindUnexpected).
 			WithErr(err)
+	}
+
+	// Save refresh token hash to DB for revocation support
+	if err := s.repo.SaveRefreshToken(
+			ctx,
+			user.ID,
+			hashToken(refreshToken),
+			time.Now().Add(s.auth.RefreshExpirationTime()),
+	); err != nil {
+			logger.Error("Failed to save refresh token", "user_id", user.ID, "error", err.Error())
+			return param.LoginResponse{}, richerror.New(op).
+					WithMessage("failed to complete login").
+					WithKind(richerror.KindUnexpected).
+					WithErr(err)
 	}
 
 	logger.Info("User logged in successfully",
