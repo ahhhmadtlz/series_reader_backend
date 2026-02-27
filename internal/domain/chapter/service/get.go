@@ -45,34 +45,24 @@ func (s Service) GetChapterWithPages(ctx context.Context, chapterID uint) (param
 			WithKind(richerror.KindNotFound)
 	}
 
+	pageIDs := make([]uint, len(pages))
+	for i, p := range pages {
+		pageIDs[i] = p.ID
+	}
+
+	variantsByPage, err := s.variantRepo.GetVariantsByPageIDs(ctx, pageIDs)
+	if err != nil {
+		// fail silently — variants may not exist yet for freshly uploaded pages
+		logger.Error("failed to batch-fetch variants for chapter pages",
+			"chapter_id", chapterID,
+			"error", err,
+		)
+		variantsByPage = nil
+	}
+
 	pageResponses := make([]param.ChapterPageResponse, len(pages))
 	for i, p := range pages {
-		variants, err := s.variantRepo.GetVariantsByPageID(ctx, p.ID)
-		if err != nil {
-			// fail silently — variants may not exist yet for freshly uploaded pages
-			logger.Error("failed to get variants for page",
-				"page_id", p.ID,
-				"error", err,
-			)
-			variants = nil
-		}
-
-		variantResponses := make([]param.PageVariantResponse, len(variants))
-		for j, v := range variants {
-			variantResponses[j] = param.PageVariantResponse{
-				ID:        v.ID,
-				Kind:      v.Kind,
-				ImageURL:  v.ImageURL,
-				CreatedAt: v.CreatedAt.Format("2006-01-02T15:04:05Z"),
-			}
-		}
-
-		pageResponses[i] = param.ChapterPageResponse{
-			ID:         p.ID,
-			PageNumber: p.PageNumber,
-			ImageURL:   p.ImageURL,
-			Variants:   variantResponses,
-		}
+		pageResponses[i] = buildPageResponse(p, variantsByPage)
 	}
 
 	return param.ChapterWithPagesResponse{

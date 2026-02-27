@@ -9,6 +9,7 @@ import (
 type Repository interface {
 	CreateVariant(ctx context.Context, variant entity.ImageVariant) (entity.ImageVariant, error)
 	GetVariantsByPageID(ctx context.Context, pageID uint) ([]entity.ImageVariant, error)
+	GetVariantsByPageIDs(ctx context.Context, pageIDs []uint) (map[uint][]entity.ImageVariant, error)
 	DeleteVariantsByPageID(ctx context.Context, pageID uint) error
 }
 
