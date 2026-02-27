@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/riverqueue/river/riverdriver/riverdatabasesql"
 	"github.com/riverqueue/river/rivermigrate"
 
@@ -59,6 +60,8 @@ import (
 
 
 func main() {
+  // Load .env.local if it exists — ignored in production where real env vars are set
+    _ = godotenv.Load(".env.local")
 
 	// 1. Load configuration
 	cfg, err := config.Load(config.DefaultOption())
