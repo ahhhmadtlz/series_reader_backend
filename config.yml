@@ -2,32 +2,27 @@ http_server:
   port: 8080
   body_limit_mb: 20
 
-# database:
-#   username: root
-#   port: 3306
-#   host: localhost
-#   name: seriesreader 
-#   sslmode: disablea # ok for localhost for production you need to use  => require
-
 postgres:
   host: localhost
   port: 5432
   username: postgres
   db_name: series_reader
   ssl_mode: disable
+  # password loaded from SERIES_POSTGRES__PASSWORD env var
 
 logger:
   level: debug
   file_path: "logs/app.log"
-  use_local_time: false        
-  file_max_size_mb: 100        # megabytes
-  file_max_age_days: 30        # days to keep
-  max_backups: 5              
-  compress: true               # compress rotated logs
+  use_local_time: false
+  file_max_size_mb: 100
+  file_max_age_days: 30
+  max_backups: 5
+  compress: true
+
 auth:
-  sign_key: "secret_key_need_to_be_change_for_production"
-  access_expiration_time: 48h 
-  refresh_expiration_time: 168h  
+  # sign_key loaded from SERIES_AUTH__SIGN_KEY env var
+  access_expiration_time: 48h
+  refresh_expiration_time: 168h
   access_subject: "access-token"
   refresh_subject: "refresh-token"
 
@@ -37,11 +32,14 @@ upload:
   max_avatar_size_mb: 5
   max_cover_size_mb: 10
   max_page_size_mb: 15
+  max_banner_size_mb: 10
+  max_thumbnail_size_mb: 5
   allowed_mime_types:
     - "image/jpeg"
     - "image/jpg"
     - "image/png"
     - "image/webp"
+
 cors:
   allowed_origins:
     - "http://localhost:3000"
