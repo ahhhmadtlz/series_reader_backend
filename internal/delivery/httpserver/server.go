@@ -85,6 +85,9 @@ func New(
 }
 
 func (s *Server) Serve() {
+	// Body limit — reject oversized requests before any handler reads the body.
+	// Set to the largest expected upload (max_page_size_mb=15) plus headroom.
+	s.Router.Use(middleware.BodyLimit(fmt.Sprintf("%dMB", s.config.HTTPServer.BodyLimitMB)))
 	// Setup middleware
 	s.Router.Use(middleware.Recover())
 	s.Router.Use(middleware.RequestID())

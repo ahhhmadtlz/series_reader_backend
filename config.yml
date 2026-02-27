@@ -1,6 +1,6 @@
 http_server:
   port: 8080
-
+  body_limit_mb: 20
 
 # database:
 #   username: root

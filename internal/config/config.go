@@ -7,6 +7,7 @@ import (
 
 type HTTPServer struct {
 	Port int `koanf:"port"`
+	BodyLimitMB int `koanf:"body_limit_mb"`
 }
 
 type Postgres struct {
