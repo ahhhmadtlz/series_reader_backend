@@ -96,21 +96,29 @@ func main() {
 	}
 	logger.Info("River tables ready")
 
+
 	// ========================================
 	// Phase 2: Setup Services
 	// ========================================
-	authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator, bookmarkSvc, bookmarkValidator, readingHistorySvc, readingHistoryValidator, uploadSvc, uploadValidator, imageWorker, jobQueue, ipSvc := setupServices(postgresDB, cfg)
-
+	// LazyJobQueue breaks the circular dependency: setupServices needs a
+	// JobQueue to wire chapterService and uploadService, but the River client
+	// (and thus the real RiverJobQueue) can only be built after imageWorker
+	// is returned from setupServices. LazyJobQueue is safe — Enqueue returns
+	// a clear error if called before Set, instead of panicking on nil.
+	lazyQueue := worker.NewLazyJobQueue()
+	authSvc, seriesSvc, seriesValidator, chapterSvc, chapterValidator, userSvc, userValidator, bookmarkSvc, bookmarkValidator, readingHistorySvc, readingHistoryValidator, uploadSvc, uploadValidator, imageWorker, ipSvc := setupServices(postgresDB, cfg, lazyQueue)
 
 	// ========================================
 	// Phase 7: River Worker Setup
 	// ========================================
-	riverClient, err := worker.NewRiverClient(postgresDB.Conn(), imageWorker)
+  riverClient, err := worker.NewRiverClient(postgresDB.Conn(), imageWorker)
 	if err != nil {
 		logger.Fatal("Failed to create River client", "error", err.Error())
 	}
 
-	jobQueue.SetClient(riverClient)
+	// Now that the River client exists, activate the job queue.
+	// From this point on, Enqueue calls are fully safe.
+	lazyQueue.Set(worker.NewRiverJobQueue(riverClient))
 
 	workerCtx, workerCancel := context.WithCancel(context.Background())
 	defer workerCancel()
@@ -171,7 +179,7 @@ func main() {
 	logger.Info("Application stopped")
 }
 
-func setupServices(db *postgres.DB, cfg *config.Config) (
+func setupServices(db *postgres.DB, cfg *config.Config, jobQueue worker.JobQueue) (
 	auth.Service,
 	seriesservice.Service,
 	seriesvalidator.Validator,
@@ -186,7 +194,6 @@ func setupServices(db *postgres.DB, cfg *config.Config) (
 	uploadservice.Service,
 	uploadvalidator.Validator,
 	*worker.ImageProcessingWorker,
-	*worker.RiverJobQueue,
 	ipservice.Service,
 ) {
 	// ========================================
@@ -230,9 +237,6 @@ func setupServices(db *postgres.DB, cfg *config.Config) (
 
 	imageProcessor := imageprocessor.New(localStorage, cfg.Upload.BasePath)
 	logger.Info("Image processor initialized")
-
-	jobQueue := worker.NewRiverJobQueue(nil)
-	logger.Info("Job queue initialized")
 
 	ipSvc := ipservice.New(imageVariantRepo, coverVariantRepo, bannerVariantRepo, chapterThumbnailVariantRepo, localStorage)
 	logger.Info("Image processing service initialized")
@@ -310,5 +314,5 @@ func setupServices(db *postgres.DB, cfg *config.Config) (
 	seriesService := seriesservice.New(seriesRepository, localStorage, uploadRepository, chapterRepository, ipSvc)
 	logger.Info("Series service initialized")
 
-	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator, bookmarkService, bookmarkValidator, readingHistoryService, readingHistoryValidator, uploadService, uploadValidator, imageWorker, jobQueue, ipSvc
+	return authService, seriesService, seriesValidator, chapterService, chapterValidator, userService, userValidator, bookmarkService, bookmarkValidator, readingHistoryService, readingHistoryValidator, uploadService, uploadValidator, imageWorker, ipSvc
 }
